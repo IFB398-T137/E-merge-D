@@ -1,0 +1,6 @@
+Hi {FirstName},
+
+Your placement/project for {UnitCode} starts on {StartDate}. Please remember to bring your {Item}.
+
+Regards,
+T4T Team
