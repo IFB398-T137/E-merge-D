@@ -17,3 +17,20 @@ The validated logic will later be reimplemented in the project backend.
 
 ```bash
 python merge.py
+
+## Approach
+
+A small Python script was created to:
+
+1. Read student data from a CSV file.
+2. Read an email template containing placeholders.
+3. Replace placeholders with matching CSV values.
+4. Generate personalised draft-style email output.
+
+## Test Data
+
+Example CSV columns:
+
+```csv
+Email,FirstName,UnitCode,StartDate
+sarah@example.com,Sarah,IFB398,1 May
