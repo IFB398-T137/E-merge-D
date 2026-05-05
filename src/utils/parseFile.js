@@ -1,5 +1,6 @@
 // parsing a data file (either .xlsx or .csv) into an array of objects 
 
+/*
 import * as XLSX from 'xlsx';
 
 // for .csv files, built-in JS functions are used
@@ -42,4 +43,4 @@ export function parseFile(file) {
         }
     })
 }
-
+*/

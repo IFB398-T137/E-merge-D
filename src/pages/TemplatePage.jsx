@@ -9,6 +9,7 @@ function TemplatePage({ onNext, onBack }) {
     return (
       <div>
         <h1>Template Page</h1>
+        
         <p style={{ fontSize: '13px', color: 'gray' }}>
         Use {`{{ColumnHeader}}`} to insert data from your CSV. For example: {`{{First_name}}`}, {`{{Email}}`}
         </p>
@@ -17,8 +18,10 @@ function TemplatePage({ onNext, onBack }) {
           value={content}
           onEditorChange={(newValue) => setContent(newValue)}
         />
+
         <button onClick={onBack}>Back</button>
         <button onClick={() => onNext(content)} disabled={!content}>Next</button>
+        
       </div>
     );
 
