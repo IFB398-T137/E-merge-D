@@ -1,9 +1,10 @@
-//
+// yet to be pulled from Template-Page-Build, but will be similar to the following:
 
 import { useState } from 'react';
+import { Editor } from '@tinymce/tinymce-react';
 
 function TemplatePage({ onNext, onBack }) {
-  const [body, setBody] = useState('')
+  const [content, setContent] = useState('')
 
     return (
       <div>
@@ -11,12 +12,13 @@ function TemplatePage({ onNext, onBack }) {
         <p style={{ fontSize: '13px', color: 'gray' }}>
         Use {`{{ColumnHeader}}`} to insert data from your CSV. For example: {`{{First_name}}`}, {`{{Email}}`}
         </p>
-        <textarea
-        value={body}
-        onChange={e => setBody(e.target.value)}
+        <Editor
+          apiKey="xgdtchyq1403e6xh20lgcepw0oidyr7ny78r4gr0g6bmuvk3"
+          value={content}
+          onEditorChange={(newValue) => setContent(newValue)}
         />
         <button onClick={onBack}>Back</button>
-        <button onClick={() => onNext(body)} disabled={!body}>Next</button>
+        <button onClick={() => onNext(content)} disabled={!content}>Next</button>
       </div>
     );
 

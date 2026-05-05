@@ -5,22 +5,31 @@ import PreviewPage from "./pages/PreviewPage";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("upload");
+  const [csvData, setCsvData] = useState([]);
+  const [body, setBody] = useState("");
 
   return (
     <div>
       {currentPage === "upload" && (
-        <UploadPage onNext={() => setCurrentPage("template")} />
+        <UploadPage onNext={() => setCurrentPage("template")}
+        setCsvData={setCsvData}/>
       )}
 
       {currentPage === "template" && (
         <TemplatePage
           onBack={() => setCurrentPage("upload")}
-          onNext={() => setCurrentPage("preview")}
+          onNext={(templateBody) => {
+            setBody(templateBody);
+            setCurrentPage("preview");
+          }}
         />
       )}
 
       {currentPage === "preview" && (
-        <PreviewPage onBack={() => setCurrentPage("template")} />
+        <PreviewPage 
+        csvData={csvData}
+        body={body}
+        onBack={() => setCurrentPage("template")} />
       )}
 
       
