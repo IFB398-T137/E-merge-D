@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 
 function TemplatePage({ onBack, onNext }) {
-  const [content, setContent] = useState("<p>Type here please...</p>");
+  const [content, setContent] = useState("<p>Edit template here.</p>");
+  
 
   return (
     <div>
@@ -11,6 +12,14 @@ function TemplatePage({ onBack, onNext }) {
       <button onClick={onBack}>Back</button>
       <button onClick={onNext}>Next</button>
 
+      {/* Buttons for create and upload template */}
+      <div style={{margin: "10px"}}>
+
+        <button>Create Template</button>
+        <button>Upload Template</button>
+          
+
+      </div>
       <div style={{ marginTop: "10px" }}>
         <Editor
         apiKey="xgdtchyq1403e6xh20lgcepw0oidyr7ny78r4gr0g6bmuvk3"
@@ -20,20 +29,27 @@ function TemplatePage({ onBack, onNext }) {
             height: 400,
             menubar: false,
 
-            // ✅ Prebuilt toolbar
+            // Creates toolbar
             toolbar:
               "undo redo | bold italic underline | " +
               "alignleft aligncenter alignright | " +
               "bullist numlist | link",
-
-            // ✅ Features enabled
+            
+            // Enabled features
             plugins: ["lists", "link", "paste"],
 
-            // Optional styling
+            // Add editor style 
             content_style:
               "body { font-family:Arial,sans-serif; font-size:14px }",
           }}
         />
+      </div>
+        
+        {/* Save template button */}
+      <div style={{marginLeft: "900px", margin: "10px"}}>
+          
+        <button>Save Template</button>
+
       </div>
     </div>
   );
