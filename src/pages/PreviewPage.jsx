@@ -1,18 +1,17 @@
 import { useState } from "react";
 import "./PreviewPage.css";
 
-
 const MOCK_RECIPIENTS = [
   {
-    to: "Han@student.qut.edu.au",
+    to: "han@student.qut.edu.au",
     subject: "Welcome to IFB398, Han",
-    body: "<p>Hi <strong>Alice</strong>,</p><p>Your assigned team is <strong>T137</strong>.</p><p>Cheers,<br/>Aloha</p>",
+    body: "<p>Hi <strong>Han</strong>,</p><p>Your assigned team is <strong>T137</strong>.</p><p>Cheers,<br/>Aloha</p>",
     warnings: [],
   },
   {
-    to: "Tulga@student.qut.edu.au",
+    to: "tulga@student.qut.edu.au",
     subject: "Welcome to IFB398, Tulga",
-    body: "<p>Hi <strong>Bob</strong>,</p><p>Your assigned team is <strong>T142</strong>.</p>",
+    body: "<p>Hi <strong>Tulga</strong>,</p><p>Your assigned team is <strong>T142</strong>.</p>",
     warnings: ["Missing sign-off"],
   },
   {
@@ -38,19 +37,27 @@ function PreviewPage({ onBack, recipients = MOCK_RECIPIENTS }) {
           ← Back
         </button>
         <h1>Preview Emails</h1>
-        <p className="preview-counter">
-          Email {index + 1} of {total}
-        </p>
       </header>
 
-      <nav className="preview-nav">
-        <button onClick={goPrev} disabled={index === 0}>
+      <div className="preview-nav-bar">
+        <button
+          className="nav-btn"
+          onClick={goPrev}
+          disabled={index === 0}
+        >
           ← Previous
         </button>
-        <button onClick={goNext} disabled={index === total - 1}>
+        <span className="preview-counter">
+          Email {index + 1} of {total}
+        </span>
+        <button
+          className="nav-btn"
+          onClick={goNext}
+          disabled={index === total - 1}
+        >
           Next →
         </button>
-      </nav>
+      </div>
 
       {current.warnings.length > 0 && (
         <div className="preview-warnings">

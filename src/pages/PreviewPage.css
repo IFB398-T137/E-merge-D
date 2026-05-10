@@ -1,17 +1,20 @@
 .preview-page {
   max-width: 800px;
-  margin: 2rem auto;
-  padding: 1.5rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
   font-family: system-ui, sans-serif;
+  background: #ffffff;
+  color: #111;
+  min-height: 100vh;
+}
+
+.preview-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
 }
 
 .preview-header h1 {
-  margin: 0 0 0.25rem;
-}
-
-.preview-counter {
-  color: #666;
-  margin: 0 0 1.5rem;
+  margin: 0.5rem 0;
 }
 
 .btn-back {
@@ -19,25 +22,38 @@
   border: none;
   color: #2563eb;
   cursor: pointer;
+  font-size: 1rem;
   padding: 0;
   margin-bottom: 0.5rem;
-  font-size: 0.95rem;
 }
 
-.preview-nav {
+.preview-nav-bar {
   display: flex;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
 
-.preview-nav button {
+.nav-btn {
   padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 500;
 }
 
-.preview-nav button:disabled {
+.nav-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.preview-counter {
+  font-weight: 600;
+  color: #374151;
 }
 
 .preview-warnings {
