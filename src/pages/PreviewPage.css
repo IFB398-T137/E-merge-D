@@ -1,5 +1,5 @@
 .preview-page {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
   font-family: system-ui, sans-serif;
@@ -14,7 +14,13 @@
 }
 
 .preview-header h1 {
-  margin: 0.5rem 0;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.preview-counter {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .btn-back {
@@ -27,33 +33,64 @@
   margin-bottom: 0.5rem;
 }
 
-.preview-nav-bar {
+.preview-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.preview-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #fafafa;
+}
+
+.recipient-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem;
+}
+
+.recipient-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  margin-bottom: 4px;
 }
 
-.nav-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
+.recipient-item:hover {
+  background: #f3f4f6;
+}
+
+.recipient-item.active {
+  background: #e0e7ff;
+  border-color: #6366f1;
   font-weight: 500;
 }
 
-.nav-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.recipient-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.preview-counter {
-  font-weight: 600;
-  color: #374151;
+.warning-badge {
+  color: #d97706;
+  margin-left: 0.5rem;
+}
+
+.preview-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .preview-warnings {
@@ -75,6 +112,7 @@
   border-radius: 6px;
   padding: 1rem 1.25rem;
   background: #fff;
+  min-height: 300px;
 }
 
 .preview-field {

@@ -1,34 +1,38 @@
 import { useState } from "react";
 import "./PreviewPage.css";
+import { mergeContent } from "../utils/mergingFunc";
 
-const MOCK_RECIPIENTS = [
-  {
-    to: "han@student.qut.edu.au",
-    subject: "Welcome to IFB398, Han",
-    body: "<p>Hi <strong>Han</strong>,</p><p>Your assigned team is <strong>T137</strong>.</p><p>Cheers,<br/>Aloha</p>",
-    warnings: [],
-  },
-  {
-    to: "tulga@student.qut.edu.au",
-    subject: "Welcome to IFB398, Tulga",
-    body: "<p>Hi <strong>Tulga</strong>,</p><p>Your assigned team is <strong>T142</strong>.</p>",
-    warnings: ["Missing sign-off"],
-  },
-  {
-    to: "",
-    subject: "Welcome to IFB398, {name}",
-    body: "<p>Hi <strong>{name}</strong>,</p><p>Your assigned team is <strong>{team}</strong>.</p>",
-    warnings: ["Missing recipient email", "Unfilled placeholders: {name}, {team}"],
-  },
+// Fallback mock data for standalone testing if no csvData passed in
+const MOCK_DATA = [
+  { RecipientEmail: "han@student.qut.edu.au", FirstName: "Han", Team: "T137" },
+  { RecipientEmail: "tulga@student.qut.edu.au", FirstName: "Tulga", Team: "T142" },
+  { RecipientEmail: "", FirstName: "", Team: "" },
 ];
+const MOCK_BODY =
+  "<p>Hi <strong>{FirstName}</strong>,</p><p>Your assigned team is <strong>{Team}</strong>.</p><p>Cheers,<br/>Aloha</p>";
 
-function PreviewPage({ onBack, recipients = MOCK_RECIPIENTS }) {
-  const [index, setIndex] = useState(0);
-  const current = recipients[index];
-  const total = recipients.length;
+function validateRow(row, mergedHtml) {
+  const issues = [];
+  if (!row.RecipientEmail) issues.push("Missing recipient email");
+  const unfilled = mergedHtml && mergedHtml.match(/\{[^}]+\}/g);
+  if (unfilled) issues.push(`Unfilled placeholders: ${unfilled.join(", ")}`);
+  return issues;
+}
 
-  const goPrev = () => setIndex((i) => Math.max(0, i - 1));
-  const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
+function PreviewPage({ csvData = MOCK_DATA, body = MOCK_BODY, onBack }) {
+  const [selectedRow, setSelectedRow] = useState(0);
+
+  const merged = csvData.map((row) => {
+    const content = mergeContent(body, row);
+    return {
+      to: row.RecipientEmail,
+      content,
+      warnings: validateRow(row, content),
+    };
+  });
+
+  const current = merged[selectedRow];
+  const total = merged.length;
 
   return (
     <div className="preview-page">
@@ -37,57 +41,60 @@ function PreviewPage({ onBack, recipients = MOCK_RECIPIENTS }) {
           ← Back
         </button>
         <h1>Preview Emails</h1>
+        <p className="preview-counter">
+          Previewing {selectedRow + 1} of {total} recipients
+        </p>
       </header>
 
-      <div className="preview-nav-bar">
-        <button
-          className="nav-btn"
-          onClick={goPrev}
-          disabled={index === 0}
-        >
-          ← Previous
-        </button>
-        <span className="preview-counter">
-          Email {index + 1} of {total}
-        </span>
-        <button
-          className="nav-btn"
-          onClick={goNext}
-          disabled={index === total - 1}
-        >
-          Next →
-        </button>
+      <div className="preview-layout">
+        <aside className="preview-sidebar">
+          <p className="recipient-count">{total} recipients</p>
+          {merged.map((item, i) => (
+            <div
+              key={i}
+              className={`recipient-item ${selectedRow === i ? "active" : ""}`}
+              onClick={() => setSelectedRow(i)}
+            >
+              <span className="recipient-email">
+                {item.to || <em>(missing)</em>}
+              </span>
+              {item.warnings.length > 0 && (
+                <span className="warning-badge" title="Has validation issues">
+                  ⚠
+                </span>
+              )}
+            </div>
+          ))}
+        </aside>
+
+        <main className="preview-main">
+          {current?.warnings.length > 0 && (
+            <div className="preview-warnings">
+              <strong>⚠ Validation issues:</strong>
+              <ul>
+                {current.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <section className="preview-email">
+            <div className="preview-field">
+              <label>To:</label>
+              <span>{current?.to || <em>(missing)</em>}</span>
+            </div>
+            <div
+              className="preview-body"
+              dangerouslySetInnerHTML={{ __html: current?.content || "" }}
+            />
+          </section>
+        </main>
       </div>
 
-      {current.warnings.length > 0 && (
-        <div className="preview-warnings">
-          <strong>⚠ Validation issues:</strong>
-          <ul>
-            {current.warnings.map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <section className="preview-email">
-        <div className="preview-field">
-          <label>To:</label>
-          <span>{current.to || <em>(missing)</em>}</span>
-        </div>
-        <div className="preview-field">
-          <label>Subject:</label>
-          <span>{current.subject}</span>
-        </div>
-        <div
-          className="preview-body"
-          dangerouslySetInnerHTML={{ __html: current.body }}
-        />
-      </section>
-
       <footer className="preview-actions">
-        <button className="btn-secondary">Edit this email</button>
-        <button className="btn-primary">Approve all & send to drafts</button>
+        <button className="btn-secondary">Send this email only</button>
+        <button className="btn-primary">Send all to Outlook drafts</button>
       </footer>
     </div>
   );
