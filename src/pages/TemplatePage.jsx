@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 
-function TemplatePage({ onNext, onBack }) {
-  const [content, setContent] = useState('')
+function TemplatePage({ onNext, onBack, initialContent = '' }) {
+  const [content, setContent] = useState(initialContent)
 
     return (
       <div>

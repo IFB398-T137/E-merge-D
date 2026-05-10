@@ -22,6 +22,7 @@ function App() {
             setBody(templateBody);
             setCurrentPage("preview");
           }}
+          initialContent={body}
         />
       )}
 
