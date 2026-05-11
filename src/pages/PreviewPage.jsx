@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
@@ -14,10 +15,14 @@ function PreviewPage({ csvData, body, onBack }) {
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 
-  const merged = csvData.map((row) => ({
-    to: row.RecipientEmail,
-    content: mergeContent(body, row),
-  }));
+  const merged = csvData.map((row) => {
+    const content = mergeContent(body, row);
+    return {
+      to: row.RecipientEmail,
+      content,
+      warnings: validateRow(row, content),
+    };
+  });
 
   async function signIn() {
     await instance.loginRedirect(loginRequest);
@@ -126,10 +131,17 @@ function PreviewPage({ csvData, body, onBack }) {
                 marginBottom: "6px",
               }}
             >
-              {item.to}
+              <span className="recipient-email">
+                {item.to || <em>(missing)</em>}
+              </span>
+              {item.warnings.length > 0 && (
+                <span className="warning-badge" title="Has validation issues">
+                  ⚠
+                </span>
+              )}
             </div>
           ))}
-        </div>
+        </aside>
 
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
