@@ -16,7 +16,6 @@
     "@tiptap/extension-placeholder": "^3.22.5",
     "@tiptap/react": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
-    "express": "^5.2.1",
     "get-port": "^7.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

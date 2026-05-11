@@ -1,33 +1,37 @@
 const { app, BrowserWindow } = require("electron");
-const path = require("path");
+const { startServer } = require("./server.cjs");
 
 let mainWindow;
+let server;
+let port;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  const isDev = !app.isPackaged;
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+  });
 
-  if (isDev) {
-    // Vite dev server
-    mainWindow.loadURL("http://localhost:5173");
-  } else {
-    // PRODUCTION build (IMPORTANT FIX)
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
-  }
+  // wait until server is ready, then load it
+  server = startServer();
 
-  mainWindow.on("closed", () => (mainWindow = null));
+  server.listen(0, () => {
+    port = server.address().port;
+    mainWindow.loadURL(`http://127.0.0.1:${port}`);
+  });
 }
 
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
+  if (server) server.close();
   if (process.platform !== "darwin") app.quit();
 });
