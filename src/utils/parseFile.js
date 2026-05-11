@@ -1,7 +1,4 @@
-// parsing a data file (either .xlsx or .csv) into an array of objects 
-
-/*
-import * as XLSX from 'xlsx';
+// parsing a CSV file into an array of objects
 
 // for .csv files, built-in JS functions are used
 function parseCSV(text) {
@@ -20,27 +17,17 @@ function parseCSV(text) {
     return { headers, data }
 }
 
-function parseXLSX(array) {
-    const workbook = XLSX.read(array, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.Sheets[0]] 
-    const rows = XLSX.utils.sheet_to_json(sheet)
-    const headers = Object.keys(rows[0] || {}) 
-    return { headers, rows }
-}
-
 export function parseFile(file) {
-    return new Promise((resolve) => { 
+    return new Promise((resolve, reject) => {
         const reader = new FileReader()
-        const isCSV = file.name.endsWith('.csv')
-        const isXLSX = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
-        
-        if (isCSV) {
-            reader.onload = (e) => resolve(parseCSV(e.target.result))
-            reader.readAsText(file)
-        } else if (isXLSX) {
-            reader.onload = (e) => resolve(parseXLSX(e.target.result))
-            reader.readAsArrayBuffer(file)
+        const isCSV = file.name.toLowerCase().endsWith('.csv')
+
+        if (!isCSV) {
+            reject(new Error('Unsupported file type. Please upload a CSV file.'))
+            return
         }
+
+        reader.onload = (e) => resolve(parseCSV(e.target.result))
+        reader.readAsText(file)
     })
 }
-*/

@@ -2,25 +2,18 @@ import { useState } from "react";
 import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
 
-// Fallback mock data for standalone testing if no csvData passed in
-const MOCK_DATA = [
-  { RecipientEmail: "han@student.qut.edu.au", FirstName: "Han", Team: "T137" },
-  { RecipientEmail: "tulga@student.qut.edu.au", FirstName: "Tulga", Team: "T142" },
-  { RecipientEmail: "", FirstName: "", Team: "" },
-];
-const MOCK_BODY =
-  "<p>Hi <strong>{FirstName}</strong>,</p><p>Your assigned team is <strong>{Team}</strong>.</p><p>Cheers,<br/>Aloha</p>";
+import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { InteractionRequiredAuthError } from "@azure/msal-browser";
 
-function validateRow(row, mergedHtml) {
-  const issues = [];
-  if (!row.RecipientEmail) issues.push("Missing recipient email");
-  const unfilled = mergedHtml && mergedHtml.match(/\{[^}]+\}/g);
-  if (unfilled) issues.push(`Unfilled placeholders: ${unfilled.join(", ")}`);
-  return issues;
-}
+import { loginRequest } from "../authConfig";
+import { createOutlookDraft } from "../utils/outlookDrafts";
 
-function PreviewPage({ csvData = MOCK_DATA, body = MOCK_BODY, onBack }) {
+function PreviewPage({ csvData, body, onBack }) {
   const [selectedRow, setSelectedRow] = useState(0);
+  const [status, setStatus] = useState("");
+
+  const { instance, accounts } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
 
   const merged = csvData.map((row) => {
     const content = mergeContent(body, row);
@@ -31,29 +24,112 @@ function PreviewPage({ csvData = MOCK_DATA, body = MOCK_BODY, onBack }) {
     };
   });
 
-  const current = merged[selectedRow];
-  const total = merged.length;
+  async function signIn() {
+    await instance.loginRedirect(loginRequest);
+  }
+
+  async function getAccessToken() {
+    if (!accounts[0]) {
+      await signIn();
+      return null;
+    }
+
+    try {
+      const result = await instance.acquireTokenSilent({
+        ...loginRequest,
+        account: accounts[0],
+      });
+
+      return result.accessToken;
+    } catch (error) {
+      if (error instanceof InteractionRequiredAuthError) {
+        await instance.acquireTokenRedirect(loginRequest);
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async function sendSingleDraft(index) {
+    try {
+      setStatus("Creating draft...");
+
+      if (!isAuthenticated) {
+        setStatus("You need to sign in before creating Outlook drafts.");
+        await signIn();
+        return;
+      }
+
+      const accessToken = await getAccessToken();
+      if (!accessToken) return;
+
+      const email = merged[index];
+
+      await createOutlookDraft(accessToken, {
+        to: email.to,
+        subject: "E-merge-D Test Email",
+        htmlBody: email.content,
+      });
+
+      setStatus(`Draft created for ${email.to}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message);
+    }
+  }
+
+  async function sendAllDrafts() {
+    try {
+      setStatus("Creating Outlook drafts...");
+
+      if (!isAuthenticated) {
+        setStatus("You need to sign in before creating Outlook drafts.");
+        await signIn();
+        return;
+      }
+
+      const accessToken = await getAccessToken();
+      if (!accessToken) return;
+
+      for (const email of merged) {
+        await createOutlookDraft(accessToken, {
+          to: email.to,
+          subject: "E-merge-D Test Email",
+          htmlBody: email.content,
+        });
+      }
+
+      setStatus(`Created ${merged.length} drafts.`);
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message);
+    }
+  }
 
   return (
-    <div className="preview-page">
-      <header className="preview-header">
-        <button className="btn-back" onClick={onBack}>
-          ← Back
-        </button>
-        <h1>Preview Emails</h1>
-        <p className="preview-counter">
-          Previewing {selectedRow + 1} of {total} recipients
-        </p>
-      </header>
+    <div>
+      <h1>Preview Page</h1>
 
-      <div className="preview-layout">
-        <aside className="preview-sidebar">
-          <p className="recipient-count">{total} recipients</p>
-          {merged.map((item, i) => (
+      <div style={{ display: "flex", gap: "1.5rem" }}>
+        <div>
+          <p style={{ fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+            {merged.length} recipients
+          </p>
+
+          {merged.map((item, index) => (
             <div
-              key={i}
-              className={`recipient-item ${selectedRow === i ? "active" : ""}`}
-              onClick={() => setSelectedRow(i)}
+              key={index}
+              onClick={() => setSelectedRow(index)}
+              style={{
+                padding: "7px 10px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "13px",
+                background: selectedRow === index ? "#f0f4ff" : "transparent",
+                border: "1px solid #eee",
+                marginBottom: "6px",
+              }}
             >
               <span className="recipient-email">
                 {item.to || <em>(missing)</em>}
@@ -67,35 +143,35 @@ function PreviewPage({ csvData = MOCK_DATA, body = MOCK_BODY, onBack }) {
           ))}
         </aside>
 
-        <main className="preview-main">
-          {current?.warnings.length > 0 && (
-            <div className="preview-warnings">
-              <strong>⚠ Validation issues:</strong>
-              <ul>
-                {current.warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
+            Previewing {selectedRow + 1} of {merged.length}
+          </p>
 
-          <section className="preview-email">
-            <div className="preview-field">
-              <label>To:</label>
-              <span>{current?.to || <em>(missing)</em>}</span>
-            </div>
-            <div
-              className="preview-body"
-              dangerouslySetInnerHTML={{ __html: current?.content || "" }}
-            />
-          </section>
-        </main>
+          <div
+            style={{
+              border: "1px solid #eee",
+              minHeight: "300px",
+              padding: "16px",
+            }}
+            dangerouslySetInnerHTML={{ __html: merged[selectedRow]?.content }}
+          />
+        </div>
       </div>
 
-      <footer className="preview-actions">
-        <button className="btn-secondary">Send this email only</button>
-        <button className="btn-primary">Send all to Outlook drafts</button>
-      </footer>
+      {status && <p style={{ marginTop: "16px" }}>{status}</p>}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+        <button onClick={onBack}>Back</button>
+
+        <button onClick={() => sendSingleDraft(selectedRow)}>
+          Send this email only
+        </button>
+
+        <button onClick={sendAllDrafts}>
+          Send all to Outlook drafts
+        </button>
+      </div>
     </div>
   );
 }
