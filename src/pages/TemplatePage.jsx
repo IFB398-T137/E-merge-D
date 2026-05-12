@@ -22,7 +22,6 @@ function TemplatePage({ onBack, onNext }) {
       </div>
       <div style={{ marginTop: "10px" }}>
         <Editor
-        apiKey="xgdtchyq1403e6xh20lgcepw0oidyr7ny78r4gr0g6bmuvk3"
           value={content}
           onEditorChange={(newValue) => setContent(newValue)}
           init={{
