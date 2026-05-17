@@ -8,6 +8,18 @@ import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { loginRequest } from "../authConfig";
 import { createOutlookDraft } from "../utils/outlookDrafts";
 
+// simple row validator used in preview to surface missing email warnings
+function validateRow(row) {
+  const warnings = [];
+
+  const hasRecipient =
+    row && (row.RecipientEmail || row.Email || row.recipientemail || row.email);
+
+  if (!hasRecipient) warnings.push("missing-recipient");
+
+  return warnings;
+}
+
 function PreviewPage({ csvData, body, onBack }) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [status, setStatus] = useState("");
@@ -42,12 +54,17 @@ function PreviewPage({ csvData, body, onBack }) {
 
       return result.accessToken;
     } catch (error) {
-      if (error instanceof InteractionRequiredAuthError) {
-        await instance.acquireTokenRedirect(loginRequest);
-        return null;
-      }
+        // msal can throw different error types when a silent token cannot be
+        // retrieved. Treat InteractionRequiredAuthError and the specific
+        // no_token_request_cache_error the same way: redirect to acquire a token.
+        const isNoTokenCacheError = error && error.errorCode === "no_token_request_cache_error";
 
-      throw error;
+        if (error instanceof InteractionRequiredAuthError || isNoTokenCacheError) {
+          await instance.acquireTokenRedirect(loginRequest);
+          return null;
+        }
+
+        throw error;
     }
   }
 
@@ -141,7 +158,7 @@ function PreviewPage({ csvData, body, onBack }) {
               )}
             </div>
           ))}
-        </aside>
+        </div>
 
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
