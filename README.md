@@ -1,16 +1,38 @@
-# React + Vite
+# E-merge-D
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+E-merge-D is a web-based email merge application designed to simplify the process of generating personalised Outlook email drafts from CSV data. The project was developed as a proof-of-concept alternative to traditional mail merge workflows, with a focus on usability, template flexibility, and Outlook integration through Microsoft Graph API.
 
-Currently, two official plugins are available:
+The application allows users to upload recipient data, create or paste HTML/plaintext email templates, preview merged results, and save personalised emails directly to their Outlook Drafts folder rather than automatically sending them. The system is intended to improve workflows for university and administrative environments where large batches of customised emails are frequently required.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
 
-## React Compiler
+- React
+- Vite
+- Microsoft Authentication Library (MSAL)
+- Microsoft Graph API
+- TinyMCE
+- Vitest
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Create an environment variable if this is not setup
+Values for the .env are obtained from the Azure/Entra app registration configured for Microsoft authentication and Outlook draft integration.
+VITE_CLIENT_ID=your-azure-app-client-id
+VITE_TENANT_ID=your-azure-tenant-id
+VITE_REDIRECT_URI=http://localhost:5173
 
-## Expanding the ESLint configuration
+## Start the development environment
+npm run dev
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Your application should be accessible at:
+http://localhost:5173
+
+## Run unit tests: 
+npm test
+
+## Manage dependencies in:
+package.json
+package-lock.json
+
+## Remember to install dependencies
+npm install
+
