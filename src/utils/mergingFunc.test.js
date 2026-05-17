@@ -13,4 +13,19 @@ describe("mergeContent", () => {
 
     expect(result).toBe("Hi Pat, your team is T137.");
   });
+  
+    it("replaces multiple occurrences of the same placeholder", () => {
+    const template =
+        "Hi {{FirstName}},\n\nYour username is {{FirstName}}.";
+        
+    const row = {
+        FirstName: "Pat",
+    };
+
+    const result = mergeContent(template, row);
+
+    expect(result).toBe(
+        "Hi Pat,\n\nYour username is Pat."
+    );
+    });
 });

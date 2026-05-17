@@ -68,9 +68,9 @@ function UploadPage({ onNext, setCsvData }) {
         <p>Upload your CSV or Excel file to begin</p>
         <ul>
           <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
-          <li>RecipientEmail is a MANDATORY FIELD</li>
+          <li>Email is a MANDATORY FIELD</li>
           <li>Each row will be used to generate one email</li>
-          <li>Supported formats: .csv, .xlsx, .xls</li>
+          <li>Supported format: csv</li>
         </ul>
       </div>
 
