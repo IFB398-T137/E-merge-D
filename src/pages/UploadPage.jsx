@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { parseFile } from "../utils/parseFile";
+import { validateCsvHeaders } from "../utils/validateCsv";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { loginRequest } from "../authConfig";
@@ -16,22 +17,30 @@ function UploadPage({ onNext, setCsvData }) {
   }
 
   async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    setFileName(file.name);
+  setFileName(file.name);
 
-    try {
-      const { data, rows } = await parseFile(file);
-      const parsedData = (data || rows).slice(0, 3);
+  try {
+    const { headers, data } = await parseFile(file);
 
-      setCsvData(data || rows);
-      setPreviewRows(parsedData);
-    } catch (error) {
-      console.error("Error parsing file:", error);
-      alert("Error parsing file. Please check the format.");
+    const isValid = validateCsvHeaders(headers);
+
+    if (!isValid) {
+      setCsvData([]);
+      setPreviewRows([]);
+      alert("CSV must include an Email or RecipientEmail column.");
+      return;
     }
+
+    setCsvData(data);
+    setPreviewRows(data.slice(0, 3));
+  } catch (error) {
+    console.error("Error parsing file:", error);
+    alert("Error parsing file. Please check the format.");
   }
+}
 
   return (
     <main style={{ padding: "30px" }}>
@@ -51,7 +60,7 @@ function UploadPage({ onNext, setCsvData }) {
 
       <input
         type="file"
-        accept=".csv,.xlsx,.xls"
+        accept=".csv"
         onChange={handleFileUpload}
         disabled={!isAuthenticated}
       />
