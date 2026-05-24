@@ -15,8 +15,8 @@ The application allows users to upload recipient data, create or paste HTML/plai
 
 ## Create an environment variable if this is not setup
 Values for the .env are obtained from the Azure/Entra app registration configured for Microsoft authentication and Outlook draft integration.
-VITE_CLIENT_ID=your-azure-app-client-id
-VITE_TENANT_ID=your-azure-tenant-id
+VITE_MS_CLIENT_ID=your-azure-app-client-id
+VITE_MS_TENANT_ID=your-azure-tenant-id
 VITE_REDIRECT_URI=http://localhost:5173
 
 ## Start the development environment
@@ -35,4 +35,3 @@ package-lock.json
 
 ## Remember to install dependencies
 npm install
-

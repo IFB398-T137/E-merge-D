@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 
-function TemplatePage({ onNext, onBack, initialContent = '' }) {
+function TemplatePage({ onNext, onBack, initialContent = '', initialSubject = '' }) {
   const [content, setContent] = useState(initialContent)
+  const [subject, setSubject] = useState(initialSubject)
 
     return (
       <div>
@@ -13,6 +14,18 @@ function TemplatePage({ onNext, onBack, initialContent = '' }) {
         <p style={{ fontSize: '13px', color: 'gray' }}>
         Use {`{{ColumnHeader}}`} to insert data from your CSV. For example: {`{{First_name}}`}, {`{{Email}}`}
         </p>
+
+        <div style={{ marginBottom: '8px' }}>
+          <label style={{ display: 'block', marginBottom: '4px' }}>Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Email subject"
+            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+          />
+        </div>
+
         <Editor
           apiKey="xgdtchyq1403e6xh20lgcepw0oidyr7ny78r4gr0g6bmuvk3"
           value={content}
@@ -20,7 +33,7 @@ function TemplatePage({ onNext, onBack, initialContent = '' }) {
         />
 
         <button onClick={onBack}>Back</button>
-        <button onClick={() => onNext(content)} disabled={!content}>Next</button>
+        <button onClick={() => onNext(content, subject)} disabled={!content}>Next</button>
         
       </div>
     );

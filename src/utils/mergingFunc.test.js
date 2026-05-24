@@ -82,6 +82,6 @@ describe("mergeContent", () => {
 
     const result = mergeContent(template, row);
 
-    expect(result).toBe('<a href="https://examplelink .com">Click here</a>');
+    expect(result).toBe('<a href="https://examplelink.com">Click here</a>');
   });
 });

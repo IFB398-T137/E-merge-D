@@ -1,4 +1,8 @@
 export async function createOutlookDraft(accessToken, { to, subject, htmlBody }) {
+  if (!accessToken) {
+    throw new Error("Cannot create Outlook draft because the Microsoft access token is empty.");
+  }
+
   const response = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
     method: "POST",
     headers: {
@@ -23,7 +27,28 @@ export async function createOutlookDraft(accessToken, { to, subject, htmlBody })
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Draft creation failed: ${response.status} ${errorText}`);
+    const authHeader = response.headers.get("www-authenticate");
+    let graphMessage = errorText;
+
+    try {
+      const errorJson = JSON.parse(errorText);
+      graphMessage =
+        errorJson?.error?.message ||
+        errorJson?.message ||
+        JSON.stringify(errorJson);
+    } catch {
+      // Keep the raw response body when Graph does not return JSON.
+    }
+
+    if (!graphMessage && authHeader) {
+      graphMessage = authHeader;
+    }
+
+    const error = new Error(
+      `Draft creation failed: ${response.status}${graphMessage ? ` - ${graphMessage}` : ""}`,
+    );
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
