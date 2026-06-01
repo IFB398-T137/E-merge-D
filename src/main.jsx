@@ -11,17 +11,37 @@ import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 const msalInstance = new PublicClientApplication(msalConfig);
+const redirectTokenKey = "emerged.microsoftRedirectToken";
 
 async function startApp() {
   try {
     await msalInstance.initialize();
-    await msalInstance.handleRedirectPromise();
+    const redirectResult = await msalInstance.handleRedirectPromise();
+
+    if (redirectResult?.account) {
+      msalInstance.setActiveAccount(redirectResult.account);
+
+      if (redirectResult.accessToken) {
+        sessionStorage.setItem(
+          redirectTokenKey,
+          JSON.stringify({
+            accessToken: redirectResult.accessToken,
+            expiresOn: redirectResult.expiresOn?.toISOString() || null,
+            scopes: redirectResult.scopes || [],
+          }),
+        );
+      }
+    } else {
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        msalInstance.setActiveAccount(accounts[0]);
+      }
+    }
   } catch (err) {
     // don't block the app render for MSAL/browser auth errors; log for debugging
     // BrowserAuthError like `no_token_request_cache_error` can happen when
-    // no token is present in cache — handle downstream where tokens are needed.
+    // no token is present in cache - handle downstream where tokens are needed.
     // We catch it here so the UI can mount and show a clear error or sign-in CTA.
-    // eslint-disable-next-line no-console
     console.warn("MSAL init/redirect error (proceeding to render):", err);
   }
 

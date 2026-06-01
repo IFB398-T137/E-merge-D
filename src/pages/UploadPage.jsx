@@ -13,7 +13,10 @@ function UploadPage({ onNext, setCsvData }) {
   const isAuthenticated = useIsAuthenticated();
 
   async function signIn() {
-    await instance.loginRedirect(loginRequest);
+    await instance.loginRedirect({
+      ...loginRequest,
+      redirectStartPage: window.location.href,
+    });
   }
 
   async function handleFileUpload(event) {
@@ -55,7 +58,7 @@ function UploadPage({ onNext, setCsvData }) {
       )}
 
       <h3>
-        Upload files <span style={{ color: "red" }}>*</span>
+        Draft emails will be created in the Outlook account used for sign-in <span style={{ color: "red" }}>*</span>
       </h3>
 
       <input
@@ -67,19 +70,19 @@ function UploadPage({ onNext, setCsvData }) {
 
       {!isAuthenticated && (
         <p style={{ color: "gray", marginTop: "8px" }}>
-          Please sign in before uploading a file.
+          Please read instructions below before uploading a file.
         </p>
       )}
 
       {fileName && <p>Uploaded: {fileName}</p>}
 
       <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px" }}>
-        <p>Upload your CSV or Excel file to begin</p>
+        <p>Upload a CSV file to begin</p>
         <ul>
           <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
-          <li>Email is a MANDATORY FIELD</li>
+          <li>Email is a MANDATORY header</li>
           <li>Each row will be used to generate one email</li>
-          <li>Supported format: csv</li>
+          <li>XLSX file format is not supported!</li>
         </ul>
       </div>
 

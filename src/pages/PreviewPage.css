@@ -159,3 +159,11 @@
   background: #e5e7eb;
   color: #111;
 }
+
+.email-preview-frame {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+}
