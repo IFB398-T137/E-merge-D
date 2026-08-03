@@ -27,6 +27,8 @@ function createWindow() {
     port = server.address().port;
     mainWindow.loadURL(`http://127.0.0.1:${port}`);
   });
+
+  mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);

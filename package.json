@@ -7,13 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "electron .",
+    "electron": "electron ."
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.17.3",
+    "@azure/msal-react": "^5.5.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "tinymce": "^8.5.0",
-    "vite-plugin-static-copy": "^4.1.0",
     "wait-on": "^9.0.5"
   },
   "devDependencies": {
@@ -22,7 +24,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
-    "electron": "^42.0.1",
+    "electron": "^42.8.0",
     "electron-builder": "^26.8.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -30,5 +32,4 @@
     "globals": "^17.5.0",
     "vite": "^8.0.10"
   }
-  
 }
