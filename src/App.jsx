@@ -23,8 +23,10 @@ function App() {
   const savedWorkflow = loadSavedWorkflow();
   const [currentPage, setCurrentPage] = useState(savedWorkflow?.currentPage || "upload");
   const [csvData, setCsvData] = useState(savedWorkflow?.csvData || []);
+  const [selectedFileName, setSelectedFileName] = useState(savedWorkflow?.selectedFileName || "");
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
+  const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -32,23 +34,36 @@ function App() {
       JSON.stringify({
         currentPage,
         csvData,
+        selectedFileName,
         body,
         subject,
+        emailEdits,
       }),
     );
-  }, [body, csvData, currentPage, subject]);
+  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject]);
 
   return (
     <div>
       {currentPage === "upload" && (
-        <UploadPage onNext={() => setCurrentPage("template")}
-        setCsvData={setCsvData}/>
+        <UploadPage
+          onNext={() => setCurrentPage("template")}
+          setCsvData={setCsvData}
+          csvData={csvData}
+          selectedFileName={selectedFileName}
+          setSelectedFileName={setSelectedFileName}
+          onClearFile={() => {
+            setCsvData([]);
+            setSelectedFileName("");
+            setEmailEdits({});
+          }}
+        />
       )}
 
       {currentPage === "template" && (
         <TemplatePage
           onBack={() => setCurrentPage("upload")}
           onNext={(templateBody, newSubject) => {
+            setEmailEdits((currentEdits) => (templateBody === body ? currentEdits : {}));
             setBody(templateBody);
             setSubject(newSubject);
             setCurrentPage("preview");
@@ -63,6 +78,10 @@ function App() {
           csvData={csvData}
           body={body}
           subject={subject}
+          emailEdits={emailEdits}
+          onSaveEmailEdit={(index, content) => {
+            setEmailEdits((currentEdits) => ({ ...currentEdits, [index]: content }));
+          }}
           onBack={() => setCurrentPage("template")} />
       )}
 

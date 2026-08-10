@@ -167,3 +167,88 @@
   border-radius: 6px;
   background: white;
 }
+
+.preview-email-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.edited-badge {
+  margin-left: 0.5rem;
+  color: #6d28d9;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.email-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.email-editor-modal {
+  width: min(850px, 100%);
+  max-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+  color: #111827;
+}
+
+.email-editor-header,
+.email-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.email-editor-header h2 {
+  margin: 0;
+}
+
+.email-editor-close {
+  border: 0;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.email-editor-actions button,
+.preview-email-heading button {
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  padding: 0.4rem 0.65rem;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.email-editor-actions button:hover,
+.preview-email-heading button:hover {
+  background: #f3f4f6;
+}
+
+
+.email-editor-actions {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.email-editor-actions .email-editor-save {
+  border-color: #6d28d9;
+  background: #7c3aed;
+  color: #fff;
+}
