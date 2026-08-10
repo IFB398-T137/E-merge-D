@@ -23,9 +23,9 @@ function createWindow() {
   // wait until server is ready, then load it
   server = startServer();
 
-  server.listen(0, () => {
+  server.listen(42813, () => {
     port = server.address().port;
-    mainWindow.loadURL(`http://127.0.0.1:${port}`);
+    mainWindow.loadURL(`http://127.0.0.1:42813`);
   });
 
   mainWindow.webContents.openDevTools();
