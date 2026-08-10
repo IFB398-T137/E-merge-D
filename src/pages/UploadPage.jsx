@@ -2,8 +2,7 @@ import { useRef, useState } from "react";
 import { parseFile } from "../utils/parseFile";
 import { validateCsvHeaders } from "../utils/validateCsv";
 
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { loginRequest } from "../authConfig";
+import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 
 function UploadPage({
   onNext,
@@ -16,15 +15,7 @@ function UploadPage({
   const [previewRows, setPreviewRows] = useState(() => csvData.slice(0, 3));
   const fileInputRef = useRef(null);
 
-  const { instance } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
-
-  async function signIn() {
-    await instance.loginRedirect({
-      ...loginRequest,
-      redirectStartPage: window.location.href,
-    });
-  }
+  const { signIn, isAuthenticated } = useDesktopAuth();
 
   async function handleFileUpload(event) {
   const file = event.target.files[0];

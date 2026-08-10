@@ -1,16 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
-
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { InteractionRequiredAuthError } from "@azure/msal-browser";
-
-import { loginRequest } from "../authConfig";
+import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
-
-const pendingDraftActionKey = "emerged.pendingDraftAction";
-const redirectTokenKey = "emerged.microsoftRedirectToken";
 
 function readTokenClaims(accessToken) {
   try {
@@ -26,18 +19,6 @@ function readTokenClaims(accessToken) {
   } catch {
     return null;
   }
-}
-
-function validateGraphToken(accessToken) {
-  if (typeof accessToken !== "string" || !accessToken.trim()) {
-    return "Microsoft returned an empty access token.";
-  }
-
-  if (accessToken === "[object Object]") {
-    return "Microsoft returned an invalid access token value.";
-  }
-
-  return null;
 }
 
 function summarizeGraphToken(accessToken) {
@@ -63,13 +44,14 @@ async function verifyGraphProfileAccess(accessToken) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
+    const error = new Error(
       `Microsoft Graph rejected the access token before draft creation: ${response.status}${errorText ? ` - ${errorText}` : ""}`,
     );
+    error.status = response.status;
+    throw error;
   }
 }
 
-// simple row validator used in preview to surface missing email warnings
 function validateRow(row) {
   const warnings = [];
 
@@ -127,10 +109,7 @@ function PreviewPage({
   const [selectedRow, setSelectedRow] = useState(0);
   const [status, setStatus] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const hasResumedDraftAction = useRef(false);
-
-  const { instance, accounts } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
+  const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
@@ -145,124 +124,6 @@ function PreviewPage({
       warnings: validateRow(row),
     };
   });
-
-  async function signIn() {
-    await instance.loginRedirect({
-      ...loginRequest,
-      redirectStartPage: window.location.href,
-    });
-  }
-
-  function savePendingDraftAction(action) {
-    if (!action) return;
-
-    sessionStorage.setItem(pendingDraftActionKey, JSON.stringify(action));
-  }
-
-  function readPendingDraftAction() {
-    try {
-      return JSON.parse(sessionStorage.getItem(pendingDraftActionKey));
-    } catch {
-      return null;
-    }
-  }
-
-  function clearPendingDraftAction() {
-    sessionStorage.removeItem(pendingDraftActionKey);
-  }
-
-  function consumeRedirectAccessToken() {
-    try {
-      const savedToken = JSON.parse(sessionStorage.getItem(redirectTokenKey));
-      sessionStorage.removeItem(redirectTokenKey);
-
-      if (!savedToken?.accessToken) {
-        return null;
-      }
-
-      const tokenProblem = validateGraphToken(savedToken.accessToken);
-      if (tokenProblem) {
-        throw new Error(tokenProblem);
-      }
-
-      return savedToken.accessToken;
-    } catch (error) {
-      sessionStorage.removeItem(redirectTokenKey);
-      throw error;
-    }
-  }
-
-  async function requestInteractiveToken(account, pendingAction) {
-    setStatus("Microsoft needs permission to create Outlook drafts...");
-
-    savePendingDraftAction(pendingAction);
-    await instance.acquireTokenRedirect({
-      ...loginRequest,
-      account,
-      redirectStartPage: window.location.href,
-    });
-
-    return null;
-  }
-
-  async function getAccessToken({
-    forceRefresh = false,
-    pendingAction,
-    allowInteractive = true,
-  } = {}) {
-    const redirectAccessToken = consumeRedirectAccessToken();
-    if (redirectAccessToken) {
-      return redirectAccessToken;
-    }
-
-    const account = instance.getActiveAccount() || accounts[0];
-
-    if (!account) {
-      await signIn();
-      return null;
-    }
-
-    try {
-      const result = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account,
-        forceRefresh,
-      });
-
-      if (!result.accessToken) {
-        setStatus("Microsoft returned an empty access token. Requesting mail access again...");
-        if (!allowInteractive) {
-          throw new Error("Microsoft returned an empty access token after refresh.");
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      const tokenProblem = validateGraphToken(result.accessToken);
-      if (tokenProblem) {
-        setStatus(`${tokenProblem} Requesting mail access again...`);
-        if (!allowInteractive) {
-          throw new Error(tokenProblem);
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      return result.accessToken;
-    } catch (error) {
-      // msal can throw different error types when a silent token cannot be
-      // retrieved. Treat InteractionRequiredAuthError and the specific
-      // no_token_request_cache_error the same way: redirect to acquire a token.
-      const isNoTokenCacheError = error && error.errorCode === "no_token_request_cache_error";
-
-      if (error instanceof InteractionRequiredAuthError || isNoTokenCacheError) {
-        if (!allowInteractive) {
-          throw error;
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      throw error;
-    }
-  }
 
   async function createDraftWithFreshToken(email, accessToken, draftSubject) {
     try {
@@ -281,7 +142,6 @@ function PreviewPage({
         forceRefresh: true,
         allowInteractive: false,
       });
-      if (!refreshedToken) return;
 
       await verifyGraphProfileAccess(refreshedToken);
       await createOutlookDraft(refreshedToken, {
@@ -294,35 +154,30 @@ function PreviewPage({
     }
   }
 
-  async function sendSingleDraft(index, accessTokenFromRedirect = "") {
+  async function ensureSignedIn() {
+    if (isAuthenticated) return true;
+
+    setStatus("Sign in with Microsoft to create Outlook drafts.");
+    await signIn();
+    return true;
+  }
+
+  async function sendSingleDraft(index) {
     let accessToken = "";
 
     try {
       setStatus("Creating draft...");
+      await ensureSignedIn();
 
-      if (!isAuthenticated) {
-        setStatus("You need to sign in before creating Outlook drafts.");
-        await signIn();
-        return;
-      }
-
-      const pendingAction = { type: "single", index };
-      accessToken =
-        typeof accessTokenFromRedirect === "string" && accessTokenFromRedirect
-          ? accessTokenFromRedirect
-          : await getAccessToken({ pendingAction });
-      if (!accessToken) return;
-
+      accessToken = await getAccessToken();
       const email = merged[index];
 
-      if (!email.to) {
+      if (!email?.to) {
         setStatus("Cannot create draft because this row is missing an email address.");
         return;
       }
 
       await createDraftWithFreshToken(email, accessToken, subject);
-
-      clearPendingDraftAction();
       setStatus(`Draft created for ${email.to}`);
     } catch (error) {
       console.error(error);
@@ -330,24 +185,12 @@ function PreviewPage({
     }
   }
 
-  async function sendAllDrafts(accessTokenFromRedirect = "") {
+  async function sendAllDrafts() {
     let accessToken = "";
 
     try {
       setStatus("Creating Outlook drafts...");
-
-      if (!isAuthenticated) {
-        setStatus("You need to sign in before creating Outlook drafts.");
-        await signIn();
-        return;
-      }
-
-      const pendingAction = { type: "all" };
-      accessToken =
-        typeof accessTokenFromRedirect === "string" && accessTokenFromRedirect
-          ? accessTokenFromRedirect
-          : await getAccessToken({ pendingAction });
-      if (!accessToken) return;
+      await ensureSignedIn();
 
       const missingRecipientCount = merged.filter((email) => !email.to).length;
 
@@ -358,52 +201,18 @@ function PreviewPage({
         return;
       }
 
+      accessToken = await getAccessToken();
+
       for (const email of merged) {
         accessToken = await createDraftWithFreshToken(email, accessToken, subject);
-        if (!accessToken) return;
       }
 
-      clearPendingDraftAction();
       setStatus(`Created ${merged.length} drafts.`);
     } catch (error) {
       console.error(error);
       setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
     }
   }
-
-  useEffect(() => {
-    if (hasResumedDraftAction.current) return;
-
-    const pendingAction = readPendingDraftAction();
-    if (!pendingAction) return;
-
-    let accessToken;
-    try {
-      accessToken = consumeRedirectAccessToken();
-    } catch (error) {
-      setTimeout(() => setStatus(error.message), 0);
-      clearPendingDraftAction();
-      return;
-    }
-
-    if (!accessToken) return;
-
-    hasResumedDraftAction.current = true;
-    setTimeout(() => {
-      setStatus("Permission approved. Creating Outlook draft...");
-
-      if (pendingAction.type === "single") {
-        sendSingleDraft(pendingAction.index, accessToken);
-      } else if (pendingAction.type === "all") {
-        sendAllDrafts(accessToken);
-      } else {
-        clearPendingDraftAction();
-      }
-    }, 0);
-    // The pending redirect token should be consumed once when Preview mounts.
-    // Re-running this for every render would risk creating duplicate drafts.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div>
@@ -513,7 +322,7 @@ function PreviewPage({
           Send this email only
         </button>
 
-        <button onClick={() => sendAllDrafts()}>
+        <button onClick={sendAllDrafts}>
           Send all to Outlook drafts
         </button>
       </div>
