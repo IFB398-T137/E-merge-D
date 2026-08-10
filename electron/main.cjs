@@ -50,13 +50,9 @@ function createWindow() {
 
   server = startServer();
 
-  server.on("error", (error) => {
-    if (error.code === "EADDRINUSE") {
-      console.error(`E-merge-D could not start because port ${APP_PORT} is already in use.`);
-    } else {
-      console.error("E-merge-D local server failed:", error);
-    }
-    app.quit();
+  server.listen(42813, () => {
+    port = server.address().port;
+    mainWindow.loadURL(`http://127.0.0.1:42813`);
   });
 
   server.listen(APP_PORT, "127.0.0.1", () => {
