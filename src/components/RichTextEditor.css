@@ -1,0 +1,37 @@
+.rich-text-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0;
+}
+
+.rich-text-toolbar button {
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  padding: 0.4rem 0.65rem;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.rich-text-toolbar button:hover {
+  background: #f3f4f6;
+}
+
+.rich-text-content {
+  min-height: 360px;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  text-align: left;
+  line-height: 1.5;
+  outline: none;
+}
+
+.rich-text-content:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}

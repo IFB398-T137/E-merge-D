@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { parseFile } from "../utils/parseFile";
 import { validateCsvHeaders } from "../utils/validateCsv";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { loginRequest } from "../authConfig";
 
-function UploadPage({ onNext, setCsvData }) {
-  const [fileName, setFileName] = useState("");
-  const [previewRows, setPreviewRows] = useState([]);
+function UploadPage({
+  onNext,
+  setCsvData,
+  csvData,
+  selectedFileName,
+  setSelectedFileName,
+  onClearFile,
+}) {
+  const [previewRows, setPreviewRows] = useState(() => csvData.slice(0, 3));
+  const fileInputRef = useRef(null);
 
   const { instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
@@ -23,8 +30,6 @@ function UploadPage({ onNext, setCsvData }) {
   const file = event.target.files[0];
   if (!file) return;
 
-  setFileName(file.name);
-
   try {
     const { headers, data } = await parseFile(file);
 
@@ -32,18 +37,29 @@ function UploadPage({ onNext, setCsvData }) {
 
     if (!isValid) {
       setCsvData([]);
+      setSelectedFileName("");
       setPreviewRows([]);
       alert("CSV must include an Email or RecipientEmail column.");
       return;
     }
 
     setCsvData(data);
+    setSelectedFileName(file.name);
     setPreviewRows(data.slice(0, 3));
   } catch (error) {
     console.error("Error parsing file:", error);
     alert("Error parsing file. Please check the format.");
   }
 }
+
+  function clearSelectedFile() {
+    onClearFile();
+    setPreviewRows([]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
 
   return (
     <main style={{ padding: "30px" }}>
@@ -62,6 +78,7 @@ function UploadPage({ onNext, setCsvData }) {
       </h3>
 
       <input
+        ref={fileInputRef}
         type="file"
         accept=".csv"
         onChange={handleFileUpload}
@@ -74,7 +91,12 @@ function UploadPage({ onNext, setCsvData }) {
         </p>
       )}
 
-      {fileName && <p>Uploaded: {fileName}</p>}
+      {selectedFileName && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "12px" }}>
+          <p>Selected file: {selectedFileName} ({csvData.length} recipient{csvData.length === 1 ? "" : "s"})</p>
+          <button type="button" onClick={clearSelectedFile}>Clear file</button>
+        </div>
+      )}
 
       <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px" }}>
         <p>Upload a CSV file to begin</p>

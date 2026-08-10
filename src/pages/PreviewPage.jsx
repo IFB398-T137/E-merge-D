@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
+import RichTextEditor from "../components/RichTextEditor";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
@@ -80,22 +81,67 @@ function validateRow(row) {
   return warnings;
 }
 
-function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }) {
+function EmailEditorModal({ content, onCancel, onSave }) {
+  const [editedContent, setEditedContent] = useState(content);
+
+  return (
+    <div className="email-editor-overlay" role="dialog" aria-modal="true" aria-label="Edit email">
+      <div className="email-editor-modal">
+        <div className="email-editor-header">
+          <h2>Edit email</h2>
+          <button type="button" className="email-editor-close" onClick={onCancel} aria-label="Close editor">
+            ×
+          </button>
+        </div>
+
+        <RichTextEditor
+          value={editedContent}
+          onChange={setEditedContent}
+          ariaLabel="Email content"
+          autoFocus
+        />
+
+        <div className="email-editor-actions">
+          <button type="button" onClick={onCancel}>Cancel</button>
+          <button
+            type="button"
+            className="email-editor-save"
+            onClick={() => onSave(editedContent)}
+          >
+            Save changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewPage({
+  csvData,
+  body,
+  subject = "E-merge-D Test Email",
+  emailEdits = {},
+  onSaveEmailEdit,
+  onBack,
+}) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [status, setStatus] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const hasResumedDraftAction = useRef(false);
 
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 
-  const merged = csvData.map((row) => {
-    const content = mergeContent(body, row);
+  const merged = csvData.map((row, index) => {
+    const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
+    const content = isEdited ? emailEdits[index] : mergeContent(body, row);
     const to =
       (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
 
     return {
       to,
       content,
+      isEdited,
       warnings: validateRow(row),
     };
   });
@@ -379,13 +425,14 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
                 cursor: "pointer",
                 fontSize: "13px",
                 background: selectedRow === index ? "#f0f4ff" : "transparent",
-                border: "1px solid #eee",
+                border: item.isEdited ? "2px solid #7c3aed" : "1px solid #eee",
                 marginBottom: "6px",
               }}
             >
               <span className="recipient-email">
                 {item.to || <em>(missing)</em>}
               </span>
+              {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (
                 <span className="warning-badge" title="Has validation issues">
                   ⚠
@@ -396,9 +443,14 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
         </div>
 
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
-            Previewing {selectedRow + 1} of {merged.length}
-          </p>
+          <div className="preview-email-heading">
+            <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
+              Previewing {selectedRow + 1} of {merged.length}
+            </p>
+            <button type="button" onClick={() => setIsEditing(true)} disabled={!merged.length}>
+              Edit this email
+            </button>
+          </div>
 
           <iframe
             title="Email preview"
@@ -440,6 +492,17 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
           />
         </div>
       </div>
+
+      {isEditing && merged[selectedRow] && (
+        <EmailEditorModal
+          content={merged[selectedRow].content}
+          onCancel={() => setIsEditing(false)}
+          onSave={(content) => {
+            onSaveEmailEdit(selectedRow, mergeContent(content, csvData[selectedRow] || {}));
+            setIsEditing(false);
+          }}
+        />
+      )}
 
       {status && <p style={{ marginTop: "16px" }}>{status}</p>}
 
