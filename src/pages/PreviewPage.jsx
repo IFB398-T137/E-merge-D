@@ -114,11 +114,14 @@ function PreviewPage({
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
-    const to =
-      (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
+    const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
+    const cc = (row && (row?.CC || row?.cc || row?.Cc)) || "";
+    const bcc = (row && (row?.BCC || row?.bcc || row?.Bcc)) || "";
 
     return {
       to,
+      cc,
+      bcc,
       content,
       isEdited,
       warnings: validateRow(row),
@@ -130,6 +133,8 @@ function PreviewPage({
       await verifyGraphProfileAccess(accessToken);
       await createOutlookDraft(accessToken, {
         to: email.to,
+        cc: email?.cc,
+        bcc: email?.bcc,
         subject: draftSubject,
         htmlBody: email.content,
       });
@@ -146,6 +151,8 @@ function PreviewPage({
       await verifyGraphProfileAccess(refreshedToken);
       await createOutlookDraft(refreshedToken, {
         to: email.to,
+        cc: email.cc,
+        bcc: email.bcc,
         subject: draftSubject,
         htmlBody: email.content,
       });
@@ -196,7 +203,7 @@ function PreviewPage({
 
       if (missingRecipientCount > 0) {
         setStatus(
-          `Cannot create drafts because ${missingRecipientCount} row${missingRecipientCount === 1 ? " is" : "s are"} missing an email address.`,
+          `Cannot create drafts because ${missingRecipientCount} row ${missingRecipientCount === 1 ? " is" : "s are"} missing an email address.`,
         );
         return;
       }
@@ -240,6 +247,18 @@ function PreviewPage({
             >
               <span className="recipient-email">
                 {item.to || <em>(missing)</em>}
+              </span>
+              {item.isEdited && <span className="edited-badge">Edited</span>}
+              {item.warnings.length > 0 && (
+                <span className="warning-badge" title="Has validation issues">
+                  ⚠
+                </span>
+              )}
+              <span className="cc-recipient-email">
+                {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
+              </span>
+              <span className="bcc-recipient-email">
+                {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
               </span>
               {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (

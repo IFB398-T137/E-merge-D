@@ -1,5 +1,4 @@
-// parsing a CSV file into an array of objects
-
+// parseCSV func takes a CSV file as input and returns an object containing the headers and data
 // for .csv files, built-in JS functions are used
 function parseCSV(text) {
     const rows = []
@@ -72,4 +71,16 @@ export async function parseFile(file) {
 
     const text = await readFileAsText(file)
     return parseCSV(text)
+}
+
+
+// process email cell values to handle multiple emails
+export function parseEmailCell(value) {
+    if (!value || typeof value !== 'string') return []
+    return value.split(',').map(email => email.trim()).filter(email => email.length > 0).filter(email => validateEmail(email))
+}
+
+export function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
 }

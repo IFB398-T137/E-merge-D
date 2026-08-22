@@ -27,6 +27,10 @@ function App() {
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
+  const [recipientFields, setRecipientFields] = useState(savedWorkflow?.recipientFields || {
+     to: "", 
+     cc: "", 
+     bcc: "" });
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -38,9 +42,10 @@ function App() {
         body,
         subject,
         emailEdits,
+        recipientFields
       }),
     );
-  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject]);
+  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject, recipientFields]);
 
   return (
     <div>
@@ -55,6 +60,7 @@ function App() {
             setCsvData([]);
             setSelectedFileName("");
             setEmailEdits({});
+            setRecipientFields({ to: "", cc: "", bcc: "" });
           }}
         />
       )}
@@ -67,6 +73,12 @@ function App() {
             setBody(templateBody);
             setSubject(newSubject);
             setCurrentPage("preview");
+            setRecipientFields((currentFields) => ({
+              ...currentFields,
+              to: currentFields.to || "",
+              cc: currentFields.cc || "",
+              bcc: currentFields.bcc || ""
+            }));
           }}
           initialContent={body}
           initialSubject={subject}
@@ -79,6 +91,7 @@ function App() {
           body={body}
           subject={subject}
           emailEdits={emailEdits}
+          recipientFields={recipientFields}
           onSaveEmailEdit={(index, content) => {
             setEmailEdits((currentEdits) => ({ ...currentEdits, [index]: content }));
           }}

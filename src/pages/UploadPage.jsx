@@ -54,18 +54,18 @@ function UploadPage({
 
   return (
     <main style={{ padding: "30px" }}>
-      <h1>Submit files</h1>
+      <h1>Upload files</h1>
 
       {!isAuthenticated ? (
         <button onClick={signIn} style={{ marginBottom: "20px" }}>
           Sign in with Microsoft
         </button>
       ) : (
-        <p style={{ marginBottom: "20px" }}>Signed in with Microsoft</p>
+        <p style={{ marginBottom: "20px" }}>Successfully signed in with Microsoft</p>
       )}
 
       <h3>
-        Draft emails will be created in the Outlook account used for sign-in <span style={{ color: "red" }}>*</span>
+        <span style={{ color: "red" }}>*</span> Draft emails will be created in the Outlook account used for sign-in <span style={{ color: "red" }}>*</span>
       </h3>
 
       <input
@@ -89,7 +89,7 @@ function UploadPage({
         </div>
       )}
 
-      <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px" }}>
+      <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
         <p>Upload a CSV file to begin</p>
         <ul>
           <li>Ensure your file includes column headers, e.g. FirstName, Email</li>

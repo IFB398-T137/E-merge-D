@@ -10,6 +10,8 @@ function TemplatePage({
 }) {
   const [content, setContent] = useState(initialContent);
   const [subject, setSubject] = useState(initialSubject);
+  const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
 
   return (
     <main className="template-page">
@@ -26,6 +28,26 @@ function TemplatePage({
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
           placeholder="Email subject"
+        />
+      </label>
+      
+      <label className="template-field">
+        CC
+        <input
+          type="text"
+          value={cc}
+          onChange={(event) => setCc(event.target.value)}
+          placeholder="CC"
+        />
+      </label>
+
+      <label className="template-field">
+        BCC
+        <input
+          type="text"
+          value={bcc}
+          onChange={(event) => setBcc(event.target.value)}
+          placeholder="BCC"
         />
       </label>
 

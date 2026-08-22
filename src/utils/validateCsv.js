@@ -1,3 +1,4 @@
+// checks if the CSV headers contain either "recipientemail" or "email" (case-insensitive)
 export function validateCsvHeaders(headers) {
   if (!Array.isArray(headers)) return false;
 
