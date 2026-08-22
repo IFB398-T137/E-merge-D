@@ -4,6 +4,7 @@ import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
+import { validateRow } from "../utils/validateCsv";
 
 function readTokenClaims(accessToken) {
   try {
@@ -50,17 +51,6 @@ async function verifyGraphProfileAccess(accessToken) {
     error.status = response.status;
     throw error;
   }
-}
-
-function validateRow(row) {
-  const warnings = [];
-
-  const hasRecipient =
-    row && (row.RecipientEmail || row.Email || row.recipientemail || row.email);
-
-  if (!hasRecipient) warnings.push("missing-recipient");
-
-  return warnings;
 }
 
 function EmailEditorModal({ content, onCancel, onSave }) {
@@ -133,8 +123,8 @@ function PreviewPage({
       await verifyGraphProfileAccess(accessToken);
       await createOutlookDraft(accessToken, {
         to: email.to,
-        cc: email?.cc,
-        bcc: email?.bcc,
+        cc: email.cc,
+        bcc: email.bcc,
         subject: draftSubject,
         htmlBody: email.content,
       });

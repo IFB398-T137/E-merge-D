@@ -74,7 +74,7 @@ export async function parseFile(file) {
 }
 
 
-// process email cell values to handle multiple emails
+// process the email cell values to handle multiple emails
 export function parseEmailCell(value) {
     if (!value || typeof value !== 'string') return []
     return value.split(',').map(email => email.trim()).filter(email => email.length > 0).filter(email => validateEmail(email))

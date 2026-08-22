@@ -7,11 +7,26 @@ function TemplatePage({
   onNext,
   initialContent = "",
   initialSubject = "E-merge-D Test Email",
+  csvHasCc,
+  csvHasBcc,
 }) {
   const [content, setContent] = useState(initialContent);
   const [subject, setSubject] = useState(initialSubject);
   const [cc, setCc] = useState("");
   const [bcc, setBcc] = useState("");
+
+  const activeFieldStyle = {
+    borderColor: "#007BFF",
+    boxShadow: "0 0 5px rgba(0, 123, 255, 0.5)",
+    display: "block",
+  }
+
+  const inactiveFieldStyle = {
+    borderColor: "#f0f0f0",
+    boxShadow: "none",
+    display: "block",
+    cursor: "not-allowed",
+  }
 
   return (
     <main className="template-page">
@@ -20,6 +35,40 @@ function TemplatePage({
       <p className="template-help">
         Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
       </p>
+      
+      <label className="template-field">
+        CC
+        {csvHasCc && (
+          <span style={{ color: "green", marginLeft: "8px" }}>
+            Uploaded CSV file contains a 'CC' column. This will be used for CC recipients.
+          </span>
+        )}
+        <input
+          type="text"
+          value={csvHasCc ? "From CSV file" : cc}
+          onChange={event => !csvHasCc &&  setCc(event.target.value)}
+          disabled={csvHasCc}
+          placeholder="CC"
+          style={csvHasCc ? inactiveFieldStyle : activeFieldStyle}
+        />
+      </label>
+
+      <label className="template-field">
+        BCC
+        {csvHasBcc && (
+          <span>
+            Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients.
+          </span>
+        )}
+        </label>
+        <input
+          type="text"
+          value={csvHasBcc ? "From CSV file" : bcc}
+          onChange={event => !csvHasBcc &&  setBcc(event.target.value)}
+          disabled={csvHasBcc}
+          placeholder="BCC"
+          style={csvHasBcc ? inactiveFieldStyle : activeFieldStyle}
+        />
 
       <label className="template-field">
         Subject
@@ -28,26 +77,7 @@ function TemplatePage({
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
           placeholder="Email subject"
-        />
-      </label>
-      
-      <label className="template-field">
-        CC
-        <input
-          type="text"
-          value={cc}
-          onChange={(event) => setCc(event.target.value)}
-          placeholder="CC"
-        />
-      </label>
-
-      <label className="template-field">
-        BCC
-        <input
-          type="text"
-          value={bcc}
-          onChange={(event) => setBcc(event.target.value)}
-          placeholder="BCC"
+          style={activeFieldStyle}
         />
       </label>
 
@@ -62,7 +92,7 @@ function TemplatePage({
         <button
           type="button"
           className="template-next"
-          onClick={() => onNext(content, subject)}
+          onClick={() => onNext(content, subject, cc, bcc)}
           disabled={!content.replace(/<[^>]*>/g, "").trim()}
         >
           Preview emails

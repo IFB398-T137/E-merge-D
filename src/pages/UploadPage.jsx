@@ -1,13 +1,16 @@
 import { useRef, useState } from "react";
 import { parseFile } from "../utils/parseFile";
 import { validateCsvHeaders } from "../utils/validateCsv";
-
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
+import { CcBccValueExists } from "../utils/validateCsv";
 
 function UploadPage({
   onNext,
   setCsvData,
   csvData,
+  setCcBccValue,
+  alertCcBcc,
+  setAlertCcBcc,
   selectedFileName,
   setSelectedFileName,
   onClearFile,
@@ -23,20 +26,30 @@ function UploadPage({
 
   try {
     const { headers, data } = await parseFile(file);
-
     const isValid = validateCsvHeaders(headers);
+    const { hasCc, hasBcc } = CcBccValueExists(headers);
 
     if (!isValid) {
       setCsvData([]);
       setSelectedFileName("");
       setPreviewRows([]);
-      alert("CSV must include an Email or RecipientEmail column.");
+      setAlertCcBcc("")
+      alert("CSV must include an 'Email' or 'RecipientEmail' column.");
       return;
     }
+
+    // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
+    const messageCcBcc =
+      (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
+      : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
+      : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
+      : "";
 
     setCsvData(data);
     setSelectedFileName(file.name);
     setPreviewRows(data.slice(0, 3));
+    setCcBccValue({ hasCc, hasBcc });
+    setAlertCcBcc(messageCcBcc)
   } catch (error) {
     console.error("Error parsing file:", error);
     alert("Error parsing file. Please check the format.");
@@ -46,6 +59,7 @@ function UploadPage({
   function clearSelectedFile() {
     onClearFile();
     setPreviewRows([]);
+    setAlertCcBcc("")
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -84,11 +98,13 @@ function UploadPage({
 
       {selectedFileName && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "12px" }}>
-          <p>Selected file: {selectedFileName} ({csvData.length} recipient{csvData.length === 1 ? "" : "s"})</p>
+          <p>Selected file: {selectedFileName} ({csvData.length} recipient{csvData.length === 1 ? "" : "s"})
+            {alertCcBcc && ` - ${alertCcBcc}`}
+          </p>
           <button type="button" onClick={clearSelectedFile}>Clear file</button>
         </div>
       )}
-
+      
       <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
         <p>Upload a CSV file to begin</p>
         <ul>

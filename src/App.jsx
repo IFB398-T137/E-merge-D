@@ -27,10 +27,8 @@ function App() {
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
-  const [recipientFields, setRecipientFields] = useState(savedWorkflow?.recipientFields || {
-     to: "", 
-     cc: "", 
-     bcc: "" });
+  const [CcBccValue, setCcBccValue] = useState(savedWorkflow?.CcBccValue || { hasCc: false, hasBcc: false });
+  const [alertCcBcc, setAlertCcBcc] = useState("");
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -41,26 +39,29 @@ function App() {
         selectedFileName,
         body,
         subject,
-        emailEdits,
-        recipientFields
+        emailEdits
       }),
     );
-  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject, recipientFields]);
+  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject
+  ]);
 
   return (
     <div>
       {currentPage === "upload" && (
         <UploadPage
-          onNext={() => setCurrentPage("template")}
+          onNext={() => 
+            setCurrentPage("template")}
+          setCcBccValue={setCcBccValue}
           setCsvData={setCsvData}
           csvData={csvData}
+          alertCcBcc={alertCcBcc}
+          setAlertCcBcc={setAlertCcBcc}
           selectedFileName={selectedFileName}
           setSelectedFileName={setSelectedFileName}
           onClearFile={() => {
             setCsvData([]);
             setSelectedFileName("");
             setEmailEdits({});
-            setRecipientFields({ to: "", cc: "", bcc: "" });
           }}
         />
       )}
@@ -73,15 +74,13 @@ function App() {
             setBody(templateBody);
             setSubject(newSubject);
             setCurrentPage("preview");
-            setRecipientFields((currentFields) => ({
-              ...currentFields,
-              to: currentFields.to || "",
-              cc: currentFields.cc || "",
-              bcc: currentFields.bcc || ""
-            }));
           }}
+          csvHasCc={CcBccValue.hasCc}
+          csvHasBcc={CcBccValue.hasBcc}
           initialContent={body}
           initialSubject={subject}
+          //initialCc={cc}
+          //initialBcc={bcc}
         />
       )}
 
@@ -91,7 +90,8 @@ function App() {
           body={body}
           subject={subject}
           emailEdits={emailEdits}
-          recipientFields={recipientFields}
+          //cc={cc}
+          //bcc={bcc}
           onSaveEmailEdit={(index, content) => {
             setEmailEdits((currentEdits) => ({ ...currentEdits, [index]: content }));
           }}
