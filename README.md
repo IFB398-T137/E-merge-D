@@ -46,3 +46,15 @@ npm run dev
 ```
 
 Microsoft sign-in is intentionally unavailable in a normal browser because authentication now runs in the Electron main process.
+
+## Attachments
+
+On the preview page, choose **Add files** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
+
+The application always displays a final confirmation before creating a single draft or all drafts. Drafts are saved to Outlook but are not sent.
+
+## Test
+
+```bash
+npm test
+```
