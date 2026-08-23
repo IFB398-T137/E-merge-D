@@ -27,6 +27,7 @@ function App() {
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -79,6 +80,8 @@ function App() {
           body={body}
           subject={subject}
           emailEdits={emailEdits}
+          attachments={attachments}
+          setAttachments={setAttachments}
           onSaveEmailEdit={(index, content) => {
             setEmailEdits((currentEdits) => ({ ...currentEdits, [index]: content }));
           }}

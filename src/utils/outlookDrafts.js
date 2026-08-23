@@ -1,4 +1,7 @@
-export async function createOutlookDraft(accessToken, { to, subject, htmlBody }) {
+export async function createOutlookDraft(
+  accessToken,
+  { to, subject, htmlBody, attachments = [] },
+) {
   if (!accessToken) {
     throw new Error("Cannot create Outlook draft because the Microsoft access token is empty.");
   }
@@ -22,6 +25,7 @@ export async function createOutlookDraft(accessToken, { to, subject, htmlBody })
           },
         },
       ],
+      ...(attachments.length > 0 ? { attachments } : {}),
     }),
   });
 

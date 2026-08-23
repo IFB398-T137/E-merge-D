@@ -4,6 +4,11 @@ import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
+import {
+  formatFileSize,
+  prepareGraphAttachments,
+  validateAttachmentSelection,
+} from "../utils/attachments";
 
 function readTokenClaims(accessToken) {
   try {
@@ -98,17 +103,50 @@ function EmailEditorModal({ content, onCancel, onSave }) {
   );
 }
 
+function ConfirmationModal({ recipientCount, attachments, onCancel, onConfirm }) {
+  return (
+    <div
+      className="confirmation-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmation-title"
+    >
+      <div className="confirmation-modal">
+        <h2 id="confirmation-title">Create Outlook {recipientCount === 1 ? "draft" : "drafts"}?</h2>
+        <p>
+          This will create {recipientCount} draft{recipientCount === 1 ? "" : "s"}. It will not send any email.
+        </p>
+        <p>
+          {attachments.length === 0
+            ? "No attachments will be added."
+            : `${attachments.length} attachment${attachments.length === 1 ? "" : "s"} will be added to every draft.`}
+        </p>
+        <div className="confirmation-actions">
+          <button type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" className="confirmation-create" onClick={onConfirm} autoFocus>
+            Create {recipientCount === 1 ? "draft" : "drafts"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PreviewPage({
   csvData,
   body,
   subject = "E-merge-D Test Email",
   emailEdits = {},
+  attachments = [],
+  setAttachments,
   onSaveEmailEdit,
   onBack,
 }) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [status, setStatus] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingDraftAction, setPendingDraftAction] = useState(null);
+  const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
   const merged = csvData.map((row, index) => {
@@ -125,13 +163,19 @@ function PreviewPage({
     };
   });
 
-  async function createDraftWithFreshToken(email, accessToken, draftSubject) {
+  async function createDraftWithFreshToken(
+    email,
+    accessToken,
+    draftSubject,
+    graphAttachments,
+  ) {
     try {
       await verifyGraphProfileAccess(accessToken);
       await createOutlookDraft(accessToken, {
         to: email.to,
         subject: draftSubject,
         htmlBody: email.content,
+        attachments: graphAttachments,
       });
 
       return accessToken;
@@ -148,6 +192,7 @@ function PreviewPage({
         to: email.to,
         subject: draftSubject,
         htmlBody: email.content,
+        attachments: graphAttachments,
       });
 
       return refreshedToken;
@@ -166,6 +211,7 @@ function PreviewPage({
     let accessToken = "";
 
     try {
+      setIsCreatingDrafts(true);
       setStatus("Creating draft...");
       await ensureSignedIn();
 
@@ -177,11 +223,14 @@ function PreviewPage({
         return;
       }
 
-      await createDraftWithFreshToken(email, accessToken, subject);
+      const graphAttachments = await prepareGraphAttachments(attachments);
+      await createDraftWithFreshToken(email, accessToken, subject, graphAttachments);
       setStatus(`Draft created for ${email.to}`);
     } catch (error) {
       console.error(error);
       setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+    } finally {
+      setIsCreatingDrafts(false);
     }
   }
 
@@ -189,6 +238,7 @@ function PreviewPage({
     let accessToken = "";
 
     try {
+      setIsCreatingDrafts(true);
       setStatus("Creating Outlook drafts...");
       await ensureSignedIn();
 
@@ -202,15 +252,80 @@ function PreviewPage({
       }
 
       accessToken = await getAccessToken();
+      const graphAttachments = await prepareGraphAttachments(attachments);
 
-      for (const email of merged) {
-        accessToken = await createDraftWithFreshToken(email, accessToken, subject);
+      for (const [index, email] of merged.entries()) {
+        setStatus(`Creating draft ${index + 1} of ${merged.length}...`);
+        accessToken = await createDraftWithFreshToken(
+          email,
+          accessToken,
+          subject,
+          graphAttachments,
+        );
       }
 
       setStatus(`Created ${merged.length} drafts.`);
     } catch (error) {
       console.error(error);
       setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+    } finally {
+      setIsCreatingDrafts(false);
+    }
+  }
+
+  function handleAttachmentSelection(event) {
+    const selectedFiles = Array.from(event.target.files || []);
+    const { validFiles, errors } = validateAttachmentSelection(selectedFiles);
+
+    if (validFiles.length > 0) {
+      setAttachments((currentAttachments) => {
+        const existingFiles = new Set(
+          currentAttachments.map((file) => `${file.name}:${file.size}:${file.lastModified}`),
+        );
+        const newFiles = validFiles.filter(
+          (file) => !existingFiles.has(`${file.name}:${file.size}:${file.lastModified}`),
+        );
+
+        return [...currentAttachments, ...newFiles];
+      });
+    }
+
+    setStatus(errors.length > 0 ? errors.join(" ") : `${validFiles.length} attachment${validFiles.length === 1 ? "" : "s"} selected.`);
+    event.target.value = "";
+  }
+
+  function requestSingleDraft() {
+    const email = merged[selectedRow];
+
+    if (!email?.to) {
+      setStatus("Cannot create draft because this row is missing an email address.");
+      return;
+    }
+
+    setPendingDraftAction({ type: "single", index: selectedRow });
+  }
+
+  function requestAllDrafts() {
+    const missingRecipientCount = merged.filter((email) => !email.to).length;
+
+    if (missingRecipientCount > 0) {
+      setStatus(
+        `Cannot create drafts because ${missingRecipientCount} row${missingRecipientCount === 1 ? " is" : "s are"} missing an email address.`,
+      );
+      return;
+    }
+
+    setPendingDraftAction({ type: "all" });
+  }
+
+  function confirmDraftCreation() {
+    const action = pendingDraftAction;
+    setPendingDraftAction(null);
+
+    if (action?.type === "single") {
+      void sendSingleDraft(action.index);
+    } else if (action?.type === "all") {
+      void sendAllDrafts();
     }
   }
 
@@ -313,17 +428,54 @@ function PreviewPage({
         />
       )}
 
-      {status && <p style={{ marginTop: "16px" }}>{status}</p>}
+      <section className="attachment-section" aria-labelledby="attachment-heading">
+        <div>
+          <h2 id="attachment-heading">Attachments</h2>
+          <p>Selected files will be attached to every draft. Each file must be smaller than 3 MB.</p>
+        </div>
+        <label className="attachment-picker">
+          Add files
+          <input type="file" multiple onChange={handleAttachmentSelection} />
+        </label>
+
+        {attachments.length > 0 && (
+          <ul className="attachment-list">
+            {attachments.map((file) => (
+              <li key={`${file.name}:${file.size}:${file.lastModified}`}>
+                <span>{file.name} ({formatFileSize(file.size)})</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachments((currentAttachments) => currentAttachments.filter((item) => item !== file))}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {pendingDraftAction && (
+        <ConfirmationModal
+          recipientCount={pendingDraftAction.type === "all" ? merged.length : 1}
+          attachments={attachments}
+          onCancel={() => setPendingDraftAction(null)}
+          onConfirm={confirmDraftCreation}
+        />
+      )}
+
+      {status && <p className="draft-status" role="status">{status}</p>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
-        <button onClick={onBack}>Back</button>
+        <button onClick={onBack} disabled={isCreatingDrafts}>Back</button>
 
-        <button onClick={() => sendSingleDraft(selectedRow)}>
-          Send this email only
+        <button onClick={requestSingleDraft} disabled={isCreatingDrafts || !merged.length}>
+          Create this Outlook draft
         </button>
 
-        <button onClick={sendAllDrafts}>
-          Send all to Outlook drafts
+        <button onClick={requestAllDrafts} disabled={isCreatingDrafts || !merged.length}>
+          Create all Outlook drafts
         </button>
       </div>
     </div>
