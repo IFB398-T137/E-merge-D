@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
-
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { InteractionRequiredAuthError } from "@azure/msal-browser";
-
-import { loginRequest } from "../authConfig";
+import RichTextEditor from "../components/RichTextEditor";
+import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
-
-const pendingDraftActionKey = "emerged.pendingDraftAction";
-const redirectTokenKey = "emerged.microsoftRedirectToken";
+import {
+  formatFileSize,
+  prepareGraphAttachments,
+  validateAttachmentSelection,
+} from "../utils/attachments";
 
 function readTokenClaims(accessToken) {
   try {
@@ -25,18 +24,6 @@ function readTokenClaims(accessToken) {
   } catch {
     return null;
   }
-}
-
-function validateGraphToken(accessToken) {
-  if (typeof accessToken !== "string" || !accessToken.trim()) {
-    return "Microsoft returned an empty access token.";
-  }
-
-  if (accessToken === "[object Object]") {
-    return "Microsoft returned an invalid access token value.";
-  }
-
-  return null;
 }
 
 function summarizeGraphToken(accessToken) {
@@ -62,13 +49,14 @@ async function verifyGraphProfileAccess(accessToken) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
+    const error = new Error(
       `Microsoft Graph rejected the access token before draft creation: ${response.status}${errorText ? ` - ${errorText}` : ""}`,
     );
+    error.status = response.status;
+    throw error;
   }
 }
 
-// simple row validator used in preview to surface missing email warnings
 function validateRow(row) {
   const warnings = [];
 
@@ -80,151 +68,114 @@ function validateRow(row) {
   return warnings;
 }
 
-function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }) {
+function EmailEditorModal({ content, onCancel, onSave }) {
+  const [editedContent, setEditedContent] = useState(content);
+
+  return (
+    <div className="email-editor-overlay" role="dialog" aria-modal="true" aria-label="Edit email">
+      <div className="email-editor-modal">
+        <div className="email-editor-header">
+          <h2>Edit email</h2>
+          <button type="button" className="email-editor-close" onClick={onCancel} aria-label="Close editor">
+            ×
+          </button>
+        </div>
+
+        <RichTextEditor
+          value={editedContent}
+          onChange={setEditedContent}
+          ariaLabel="Email content"
+          autoFocus
+        />
+
+        <div className="email-editor-actions">
+          <button type="button" onClick={onCancel}>Cancel</button>
+          <button
+            type="button"
+            className="email-editor-save"
+            onClick={() => onSave(editedContent)}
+          >
+            Save changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmationModal({ recipientCount, attachments, onCancel, onConfirm }) {
+  return (
+    <div
+      className="confirmation-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmation-title"
+    >
+      <div className="confirmation-modal">
+        <h2 id="confirmation-title">Create Outlook {recipientCount === 1 ? "draft" : "drafts"}?</h2>
+        <p>
+          This will create {recipientCount} draft{recipientCount === 1 ? "" : "s"}. It will not send any email.
+        </p>
+        <p>
+          {attachments.length === 0
+            ? "No attachments will be added."
+            : `${attachments.length} attachment${attachments.length === 1 ? "" : "s"} will be added to every draft.`}
+        </p>
+        <div className="confirmation-actions">
+          <button type="button" onClick={onCancel}>Cancel</button>
+          <button type="button" className="confirmation-create" onClick={onConfirm} autoFocus>
+            Create {recipientCount === 1 ? "draft" : "drafts"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewPage({
+  csvData,
+  body,
+  subject = "E-merge-D Test Email",
+  emailEdits = {},
+  attachments = [],
+  setAttachments,
+  onSaveEmailEdit,
+  onBack,
+}) {
   const [selectedRow, setSelectedRow] = useState(0);
   const [status, setStatus] = useState("");
-  const hasResumedDraftAction = useRef(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [pendingDraftAction, setPendingDraftAction] = useState(null);
+  const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
+  const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
-  const { instance, accounts } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
-
-  const merged = csvData.map((row) => {
-    const content = mergeContent(body, row);
+  const merged = csvData.map((row, index) => {
+    const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
+    const content = isEdited ? emailEdits[index] : mergeContent(body, row);
     const to =
       (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
 
     return {
       to,
       content,
+      isEdited,
       warnings: validateRow(row),
     };
   });
 
-  async function signIn() {
-    await instance.loginRedirect({
-      ...loginRequest,
-      redirectStartPage: window.location.href,
-    });
-  }
-
-  function savePendingDraftAction(action) {
-    if (!action) return;
-
-    sessionStorage.setItem(pendingDraftActionKey, JSON.stringify(action));
-  }
-
-  function readPendingDraftAction() {
-    try {
-      return JSON.parse(sessionStorage.getItem(pendingDraftActionKey));
-    } catch {
-      return null;
-    }
-  }
-
-  function clearPendingDraftAction() {
-    sessionStorage.removeItem(pendingDraftActionKey);
-  }
-
-  function consumeRedirectAccessToken() {
-    try {
-      const savedToken = JSON.parse(sessionStorage.getItem(redirectTokenKey));
-      sessionStorage.removeItem(redirectTokenKey);
-
-      if (!savedToken?.accessToken) {
-        return null;
-      }
-
-      const tokenProblem = validateGraphToken(savedToken.accessToken);
-      if (tokenProblem) {
-        throw new Error(tokenProblem);
-      }
-
-      return savedToken.accessToken;
-    } catch (error) {
-      sessionStorage.removeItem(redirectTokenKey);
-      throw error;
-    }
-  }
-
-  async function requestInteractiveToken(account, pendingAction) {
-    setStatus("Microsoft needs permission to create Outlook drafts...");
-
-    savePendingDraftAction(pendingAction);
-    await instance.acquireTokenRedirect({
-      ...loginRequest,
-      account,
-      redirectStartPage: window.location.href,
-    });
-
-    return null;
-  }
-
-  async function getAccessToken({
-    forceRefresh = false,
-    pendingAction,
-    allowInteractive = true,
-  } = {}) {
-    const redirectAccessToken = consumeRedirectAccessToken();
-    if (redirectAccessToken) {
-      return redirectAccessToken;
-    }
-
-    const account = instance.getActiveAccount() || accounts[0];
-
-    if (!account) {
-      await signIn();
-      return null;
-    }
-
-    try {
-      const result = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account,
-        forceRefresh,
-      });
-
-      if (!result.accessToken) {
-        setStatus("Microsoft returned an empty access token. Requesting mail access again...");
-        if (!allowInteractive) {
-          throw new Error("Microsoft returned an empty access token after refresh.");
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      const tokenProblem = validateGraphToken(result.accessToken);
-      if (tokenProblem) {
-        setStatus(`${tokenProblem} Requesting mail access again...`);
-        if (!allowInteractive) {
-          throw new Error(tokenProblem);
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      return result.accessToken;
-    } catch (error) {
-      // msal can throw different error types when a silent token cannot be
-      // retrieved. Treat InteractionRequiredAuthError and the specific
-      // no_token_request_cache_error the same way: redirect to acquire a token.
-      const isNoTokenCacheError = error && error.errorCode === "no_token_request_cache_error";
-
-      if (error instanceof InteractionRequiredAuthError || isNoTokenCacheError) {
-        if (!allowInteractive) {
-          throw error;
-        }
-        return requestInteractiveToken(account, pendingAction);
-      }
-
-      throw error;
-    }
-  }
-
-  async function createDraftWithFreshToken(email, accessToken, draftSubject) {
+  async function createDraftWithFreshToken(
+    email,
+    accessToken,
+    draftSubject,
+    graphAttachments,
+  ) {
     try {
       await verifyGraphProfileAccess(accessToken);
       await createOutlookDraft(accessToken, {
         to: email.to,
         subject: draftSubject,
         htmlBody: email.content,
+        attachments: graphAttachments,
       });
 
       return accessToken;
@@ -235,73 +186,61 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
         forceRefresh: true,
         allowInteractive: false,
       });
-      if (!refreshedToken) return;
 
       await verifyGraphProfileAccess(refreshedToken);
       await createOutlookDraft(refreshedToken, {
         to: email.to,
         subject: draftSubject,
         htmlBody: email.content,
+        attachments: graphAttachments,
       });
 
       return refreshedToken;
     }
   }
 
-  async function sendSingleDraft(index, accessTokenFromRedirect = "") {
+  async function ensureSignedIn() {
+    if (isAuthenticated) return true;
+
+    setStatus("Sign in with Microsoft to create Outlook drafts.");
+    await signIn();
+    return true;
+  }
+
+  async function sendSingleDraft(index) {
     let accessToken = "";
 
     try {
+      setIsCreatingDrafts(true);
       setStatus("Creating draft...");
+      await ensureSignedIn();
 
-      if (!isAuthenticated) {
-        setStatus("You need to sign in before creating Outlook drafts.");
-        await signIn();
-        return;
-      }
-
-      const pendingAction = { type: "single", index };
-      accessToken =
-        typeof accessTokenFromRedirect === "string" && accessTokenFromRedirect
-          ? accessTokenFromRedirect
-          : await getAccessToken({ pendingAction });
-      if (!accessToken) return;
-
+      accessToken = await getAccessToken();
       const email = merged[index];
 
-      if (!email.to) {
+      if (!email?.to) {
         setStatus("Cannot create draft because this row is missing an email address.");
         return;
       }
 
-      await createDraftWithFreshToken(email, accessToken, subject);
-
-      clearPendingDraftAction();
+      const graphAttachments = await prepareGraphAttachments(attachments);
+      await createDraftWithFreshToken(email, accessToken, subject, graphAttachments);
       setStatus(`Draft created for ${email.to}`);
     } catch (error) {
       console.error(error);
       setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+    } finally {
+      setIsCreatingDrafts(false);
     }
   }
 
-  async function sendAllDrafts(accessTokenFromRedirect = "") {
+  async function sendAllDrafts() {
     let accessToken = "";
 
     try {
+      setIsCreatingDrafts(true);
       setStatus("Creating Outlook drafts...");
-
-      if (!isAuthenticated) {
-        setStatus("You need to sign in before creating Outlook drafts.");
-        await signIn();
-        return;
-      }
-
-      const pendingAction = { type: "all" };
-      accessToken =
-        typeof accessTokenFromRedirect === "string" && accessTokenFromRedirect
-          ? accessTokenFromRedirect
-          : await getAccessToken({ pendingAction });
-      if (!accessToken) return;
+      await ensureSignedIn();
 
       const missingRecipientCount = merged.filter((email) => !email.to).length;
 
@@ -312,52 +251,83 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
         return;
       }
 
-      for (const email of merged) {
-        accessToken = await createDraftWithFreshToken(email, accessToken, subject);
-        if (!accessToken) return;
+      accessToken = await getAccessToken();
+      const graphAttachments = await prepareGraphAttachments(attachments);
+
+      for (const [index, email] of merged.entries()) {
+        setStatus(`Creating draft ${index + 1} of ${merged.length}...`);
+        accessToken = await createDraftWithFreshToken(
+          email,
+          accessToken,
+          subject,
+          graphAttachments,
+        );
       }
 
-      clearPendingDraftAction();
       setStatus(`Created ${merged.length} drafts.`);
     } catch (error) {
       console.error(error);
       setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+    } finally {
+      setIsCreatingDrafts(false);
     }
   }
 
-  useEffect(() => {
-    if (hasResumedDraftAction.current) return;
+  function handleAttachmentSelection(event) {
+    const selectedFiles = Array.from(event.target.files || []);
+    const { validFiles, errors } = validateAttachmentSelection(selectedFiles);
 
-    const pendingAction = readPendingDraftAction();
-    if (!pendingAction) return;
+    if (validFiles.length > 0) {
+      setAttachments((currentAttachments) => {
+        const existingFiles = new Set(
+          currentAttachments.map((file) => `${file.name}:${file.size}:${file.lastModified}`),
+        );
+        const newFiles = validFiles.filter(
+          (file) => !existingFiles.has(`${file.name}:${file.size}:${file.lastModified}`),
+        );
 
-    let accessToken;
-    try {
-      accessToken = consumeRedirectAccessToken();
-    } catch (error) {
-      setTimeout(() => setStatus(error.message), 0);
-      clearPendingDraftAction();
+        return [...currentAttachments, ...newFiles];
+      });
+    }
+
+    setStatus(errors.length > 0 ? errors.join(" ") : `${validFiles.length} attachment${validFiles.length === 1 ? "" : "s"} selected.`);
+    event.target.value = "";
+  }
+
+  function requestSingleDraft() {
+    const email = merged[selectedRow];
+
+    if (!email?.to) {
+      setStatus("Cannot create draft because this row is missing an email address.");
       return;
     }
 
-    if (!accessToken) return;
+    setPendingDraftAction({ type: "single", index: selectedRow });
+  }
 
-    hasResumedDraftAction.current = true;
-    setTimeout(() => {
-      setStatus("Permission approved. Creating Outlook draft...");
+  function requestAllDrafts() {
+    const missingRecipientCount = merged.filter((email) => !email.to).length;
 
-      if (pendingAction.type === "single") {
-        sendSingleDraft(pendingAction.index, accessToken);
-      } else if (pendingAction.type === "all") {
-        sendAllDrafts(accessToken);
-      } else {
-        clearPendingDraftAction();
-      }
-    }, 0);
-    // The pending redirect token should be consumed once when Preview mounts.
-    // Re-running this for every render would risk creating duplicate drafts.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (missingRecipientCount > 0) {
+      setStatus(
+        `Cannot create drafts because ${missingRecipientCount} row${missingRecipientCount === 1 ? " is" : "s are"} missing an email address.`,
+      );
+      return;
+    }
+
+    setPendingDraftAction({ type: "all" });
+  }
+
+  function confirmDraftCreation() {
+    const action = pendingDraftAction;
+    setPendingDraftAction(null);
+
+    if (action?.type === "single") {
+      void sendSingleDraft(action.index);
+    } else if (action?.type === "all") {
+      void sendAllDrafts();
+    }
+  }
 
   return (
     <div>
@@ -379,13 +349,14 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
                 cursor: "pointer",
                 fontSize: "13px",
                 background: selectedRow === index ? "#f0f4ff" : "transparent",
-                border: "1px solid #eee",
+                border: item.isEdited ? "2px solid #7c3aed" : "1px solid #eee",
                 marginBottom: "6px",
               }}
             >
               <span className="recipient-email">
                 {item.to || <em>(missing)</em>}
               </span>
+              {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (
                 <span className="warning-badge" title="Has validation issues">
                   ⚠
@@ -396,9 +367,14 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
         </div>
 
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
-            Previewing {selectedRow + 1} of {merged.length}
-          </p>
+          <div className="preview-email-heading">
+            <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
+              Previewing {selectedRow + 1} of {merged.length}
+            </p>
+            <button type="button" onClick={() => setIsEditing(true)} disabled={!merged.length}>
+              Edit this email
+            </button>
+          </div>
 
           <iframe
             title="Email preview"
@@ -441,17 +417,65 @@ function PreviewPage({ csvData, body, subject = "E-merge-D Test Email", onBack }
         </div>
       </div>
 
-      {status && <p style={{ marginTop: "16px" }}>{status}</p>}
+      {isEditing && merged[selectedRow] && (
+        <EmailEditorModal
+          content={merged[selectedRow].content}
+          onCancel={() => setIsEditing(false)}
+          onSave={(content) => {
+            onSaveEmailEdit(selectedRow, mergeContent(content, csvData[selectedRow] || {}));
+            setIsEditing(false);
+          }}
+        />
+      )}
+
+      <section className="attachment-section" aria-labelledby="attachment-heading">
+        <div>
+          <h2 id="attachment-heading">Attachments</h2>
+          <p>Selected files will be attached to every draft. Each file must be smaller than 3 MB.</p>
+        </div>
+        <label className="attachment-picker">
+          Add files
+          <input type="file" multiple onChange={handleAttachmentSelection} />
+        </label>
+
+        {attachments.length > 0 && (
+          <ul className="attachment-list">
+            {attachments.map((file) => (
+              <li key={`${file.name}:${file.size}:${file.lastModified}`}>
+                <span>{file.name} ({formatFileSize(file.size)})</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachments((currentAttachments) => currentAttachments.filter((item) => item !== file))}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {pendingDraftAction && (
+        <ConfirmationModal
+          recipientCount={pendingDraftAction.type === "all" ? merged.length : 1}
+          attachments={attachments}
+          onCancel={() => setPendingDraftAction(null)}
+          onConfirm={confirmDraftCreation}
+        />
+      )}
+
+      {status && <p className="draft-status" role="status">{status}</p>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
-        <button onClick={onBack}>Back</button>
+        <button onClick={onBack} disabled={isCreatingDrafts}>Back</button>
 
-        <button onClick={() => sendSingleDraft(selectedRow)}>
-          Send this email only
+        <button onClick={requestSingleDraft} disabled={isCreatingDrafts || !merged.length}>
+          Create this Outlook draft
         </button>
 
-        <button onClick={() => sendAllDrafts()}>
-          Send all to Outlook drafts
+        <button onClick={requestAllDrafts} disabled={isCreatingDrafts || !merged.length}>
+          Create all Outlook drafts
         </button>
       </div>
     </div>

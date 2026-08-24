@@ -1,37 +1,60 @@
 # E-merge-D
 
-E-merge-D is a web-based email merge application designed to simplify the process of generating personalised Outlook email drafts from CSV data. The project was developed as a proof-of-concept alternative to traditional mail merge workflows, with a focus on usability, template flexibility, and Outlook integration through Microsoft Graph API.
+E-merge-D is an Electron desktop email merge application for generating personalised Outlook drafts from CSV data. Users upload recipient data, create or paste an HTML/plain-text template, preview merged results, and save personalised messages directly to their Outlook Drafts folder through Microsoft Graph.
 
-The application allows users to upload recipient data, create or paste HTML/plaintext email templates, preview merged results, and save personalised emails directly to their Outlook Drafts folder rather than automatically sending them. The system is intended to improve workflows for university and administrative environments where large batches of customised emails are frequently required.
+## Tech stack
 
-## Tech Stack
-
+- Electron
 - React
 - Vite
-- Microsoft Authentication Library (MSAL)
+- MSAL Node (`@azure/msal-node`)
 - Microsoft Graph API
 - TinyMCE
-- Vitest
 
-## Create an environment variable if this is not setup
-Values for the .env are obtained from the Azure/Entra app registration configured for Microsoft authentication and Outlook draft integration.
-VITE_MS_CLIENT_ID=73add89f-a195-4a8a-9397-783d3c37489d
-VITE_MS_TENANT_ID=common
-VITE_REDIRECT_URI=http://localhost:5173
+## Microsoft authentication
 
-## Start the development environment
-npm run dev
+The Electron main process handles Microsoft authentication with MSAL Node. The React renderer communicates with it through the preload/IPC bridge.
 
+Default configuration:
 
-## Your application should be accessible at:
-http://localhost:5173
+- Client ID: `73add89f-a195-4a8a-9397-783d3c37489d`
+- Authority: `https://login.microsoftonline.com/common`
+- Graph scopes: `User.Read`, `Mail.ReadWrite`
+- Desktop redirect URI registered in Entra: `http://localhost`
+- Electron local UI: `http://127.0.0.1:42813`
 
-## Run unit tests: 
-npm test
+See `DESKTOP_AUTH_FIX.md` for the required Entra configuration.
 
-## Manage dependencies in:
-package.json
-package-lock.json
+## Install
 
-## Remember to install dependencies
+```bash
 npm install
+```
+
+## Run the desktop application
+
+```bash
+npm run desktop
+```
+
+This builds the Vite renderer and starts Electron.
+
+## Run renderer only
+
+```bash
+npm run dev
+```
+
+Microsoft sign-in is intentionally unavailable in a normal browser because authentication now runs in the Electron main process.
+
+## Attachments
+
+On the preview page, choose **Add files** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
+
+The application always displays a final confirmation before creating a single draft or all drafts. Drafts are saved to Outlook but are not sent.
+
+## Test
+
+```bash
+npm test
+```
