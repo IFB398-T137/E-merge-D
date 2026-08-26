@@ -5,6 +5,8 @@ import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
 import { validateRow } from "../utils/validateCsv";
+import { processRecipientArrays } from "../utils/processRecipients.js";
+
 
 function readTokenClaims(accessToken) {
   try {
@@ -53,7 +55,11 @@ async function verifyGraphProfileAccess(accessToken) {
   }
 }
 
-function EmailEditorModal({ content, onCancel, onSave }) {
+function EmailEditorModal({ 
+  content, 
+  onCancel, 
+  onSave,
+}) {
   const [editedContent, setEditedContent] = useState(content);
 
   return (
@@ -92,6 +98,10 @@ function PreviewPage({
   csvData,
   body,
   subject = "E-merge-D Test Email",
+  cc,
+  bcc,
+  csvHasCc,
+  csvHasBcc,
   emailEdits = {},
   onSaveEmailEdit,
   onBack,
@@ -101,17 +111,24 @@ function PreviewPage({
   const [isEditing, setIsEditing] = useState(false);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
+  // CC not working - check object types, csv saved in array, manual entry cc is cleaned up and then save in an array, if hasCc then no action but if !hasCc, use manualCcs
+
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
     const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
-    const cc = (row && (row?.CC || row?.cc || row?.Cc)) || "";
-    const bcc = (row && (row?.BCC || row?.bcc || row?.Bcc)) || "";
+    const { cc: rowCc, bcc: rowBcc } = processRecipientArrays({
+      row,
+      csvHasCc,
+      csvHasBcc,
+      manualCc: cc,
+      manualBcc: bcc,
+    })
 
     return {
       to,
-      cc,
-      bcc,
+      cc: rowCc,
+      bcc: rowBcc,
       content,
       isEdited,
       warnings: validateRow(row),
@@ -238,16 +255,15 @@ function PreviewPage({
               <span className="recipient-email">
                 {item.to || <em>(missing)</em>}
               </span>
-              {item.isEdited && <span className="edited-badge">Edited</span>}
+              {item.isEdited && (<span className="edited-badge">Edited</span>)}
               {item.warnings.length > 0 && (
-                <span className="warning-badge" title="Has validation issues">
-                  ⚠
-                </span>
+                <span className="warning-badge" title="Has validation issues"> ⚠ </span>
               )}
-              <span className="cc-recipient-email">
+
+              <span className="recipient-email">
                 {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
               </span>
-              <span className="bcc-recipient-email">
+              <span className="recipient-email">
                 {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
               </span>
               {item.isEdited && <span className="edited-badge">Edited</span>}
@@ -337,6 +353,5 @@ function PreviewPage({
       </div>
     </div>
   );
-}
-
+} 
 export default PreviewPage;

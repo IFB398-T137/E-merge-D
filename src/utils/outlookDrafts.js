@@ -1,13 +1,19 @@
-import { parseEmailCell } from "./parseFile.js";
-export async function createOutlookDraft(accessToken, { to, cc, bcc, subject, htmlBody }) {
+import { parseEmailCell } from "./processRecipients.js";
+
+export async function createOutlookDraft(accessToken, { 
+  to, 
+  cc = [],
+  bcc = [],
+  subject, 
+  htmlBody 
+}) {
+
   if (!accessToken) {
     throw new Error("Cannot create Outlook draft because the Microsoft access token is empty.");
   }
 
-  // ensure 'to', 'cc' and 'bcc' are arrays of trimmed email addresses
+  // handles if 'to' column has mutliple emails and stores in array
   const toRecipients = parseEmailCell(to);
-  const ccRecipients = parseEmailCell(cc);
-  const bccRecipients = parseEmailCell(bcc);
 
   const emailFields = {
     subject,
@@ -15,12 +21,26 @@ export async function createOutlookDraft(accessToken, { to, cc, bcc, subject, ht
       contentType: "HTML",
       content: htmlBody,
     },
-    toRecipients: toRecipients.map(email => ({
+    toRecipients: toRecipients.map(email => ({ 
       emailAddress: { address: email },
     })),
+  };
+
+  // cc is inherently optional
+  if (cc.length > 0) {
+    emailFields.ccRecipients = cc.map(email => ({
+      emailAddress: { address: email },
+    }));
   }
 
-  // only add CC or BCC fields if email address exists in csv file
+  // bcc is inherently optional too
+  if (bcc.length > 0) {
+    emailFields.bccRecipients = bcc.map(email => ({
+    emailAddress: { address: email.bcc },
+    }));
+  }
+
+/*   // only add CC or BCC fields if email address exists in csv file
   if (ccRecipients.length > 0) {
     emailFields.ccRecipients = ccRecipients.map(email => ({
       emailAddress: { address: email },
@@ -31,7 +51,7 @@ export async function createOutlookDraft(accessToken, { to, cc, bcc, subject, ht
     emailFields.bccRecipients = bccRecipients.map(email => ({
       emailAddress: { address: email },
     }));
-  }
+  }  */
 
   const response = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
     method: "POST",

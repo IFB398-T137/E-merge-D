@@ -1,14 +1,13 @@
 import { useRef, useState } from "react";
 import { parseFile } from "../utils/parseFile";
-import { validateCsvHeaders } from "../utils/validateCsv";
+import { validateCsvHeaders, CsvHeaderFields } from "../utils/validateCsv";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
-import { CcBccValueExists } from "../utils/validateCsv";
 
 function UploadPage({
   onNext,
-  setCsvData,
   csvData,
-  setCcBccValue,
+  setCsvData,
+  setCsvHeaderFields,
   alertCcBcc,
   setAlertCcBcc,
   selectedFileName,
@@ -21,45 +20,44 @@ function UploadPage({
   const { signIn, isAuthenticated } = useDesktopAuth();
 
   async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-  try {
-    const { headers, data } = await parseFile(file);
-    const isValid = validateCsvHeaders(headers);
-    const { hasCc, hasBcc } = CcBccValueExists(headers);
+    try {
+      const { headers, data } = await parseFile(file);
+      const isValid = validateCsvHeaders(headers);
+      const { hasCc, hasBcc } = CsvHeaderFields(headers);
 
-    if (!isValid) {
-      setCsvData([]);
-      setSelectedFileName("");
-      setPreviewRows([]);
-      setAlertCcBcc("")
-      alert("CSV must include an 'Email' or 'RecipientEmail' column.");
-      return;
+      if (!isValid) {
+        setCsvData([]);
+        setSelectedFileName("");
+        setPreviewRows([]);
+        setAlertCcBcc("")
+        alert("CSV must include an 'Email' or 'RecipientEmail' column.");
+        return;
+      }
+
+      // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
+      const messageCcBcc =
+        (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
+        : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
+        : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
+        : "";
+
+      setCsvData(data);
+      setSelectedFileName(file.name);
+      setPreviewRows(data.slice(0, 3));
+      setCsvHeaderFields({ hasCc, hasBcc });
+      setAlertCcBcc(messageCcBcc)
+    } catch (error) {
+      console.error("Error parsing file:", error);
+      alert("Error parsing file. Please check the format.");
     }
-
-    // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
-    const messageCcBcc =
-      (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
-      : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
-      : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
-      : "";
-
-    setCsvData(data);
-    setSelectedFileName(file.name);
-    setPreviewRows(data.slice(0, 3));
-    setCcBccValue({ hasCc, hasBcc });
-    setAlertCcBcc(messageCcBcc)
-  } catch (error) {
-    console.error("Error parsing file:", error);
-    alert("Error parsing file. Please check the format.");
   }
-}
 
   function clearSelectedFile() {
     onClearFile();
     setPreviewRows([]);
-    setAlertCcBcc("")
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";

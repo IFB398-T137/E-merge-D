@@ -1,26 +1,25 @@
-// checks if the CSV headers contain either "recipientemail" or "email" (case-insensitive)
+// parses all headers in csv file and then validates the results
+export function normaliseHeaders(headers) {
+  if (!Array.isArray(headers)) return [];
+    
+  return headers.map(h => String(h).trim().toLowerCase());
+}
+
 export function validateCsvHeaders(headers) {
-  if (!Array.isArray(headers) || headers.length === 0) {
-    return false;
-  }
-
-  const normalized = headers.map((h) => String(h).trim().toLowerCase());
-
+  const normalized = normaliseHeaders(headers);
+  
   return (
     normalized.includes("recipientemail") || normalized.includes("email")
   );
 }
 
-export function CcBccValueExists(headers) {
-  if (!Array.isArray(headers) || headers.length === 0) {
-    return { hasCc: false, hasBcc: false };
-  }
+export function CsvHeaderFields(headers) {
+  const normalized = normaliseHeaders(headers);
 
-  const normalized = headers.map((h) => String(h).trim().toLowerCase());
-  const hasCc = normalized.includes("cc");
-  const hasBcc = normalized.includes("bcc");
-
-  return { hasCc, hasBcc };
+  return {
+    hasCc: normalized.includes("cc"),
+    hasBcc: normalized.includes("bcc")
+  };
 }
 
 export function validateRow(row) {
@@ -33,3 +32,16 @@ export function validateRow(row) {
 
   return warnings;
 }
+
+
+/*
+export function validateCsvHeaders(headers) {
+  if (!Array.isArray(headers)) return false;
+
+  const normalized = headers.map((h) => String(h).trim().toLowerCase());
+
+  return (
+    normalized.includes("recipientemail") || normalized.includes("email")
+  );
+}
+  */

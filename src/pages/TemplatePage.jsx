@@ -7,26 +7,15 @@ function TemplatePage({
   onNext,
   initialContent = "",
   initialSubject = "E-merge-D Test Email",
+  initialCc = "",
+  initialBcc = "",
   csvHasCc,
   csvHasBcc,
 }) {
   const [content, setContent] = useState(initialContent);
   const [subject, setSubject] = useState(initialSubject);
-  const [cc, setCc] = useState("");
-  const [bcc, setBcc] = useState("");
-
-  const activeFieldStyle = {
-    borderColor: "#007BFF",
-    boxShadow: "0 0 5px rgba(0, 123, 255, 0.5)",
-    display: "block",
-  }
-
-  const inactiveFieldStyle = {
-    borderColor: "#f0f0f0",
-    boxShadow: "none",
-    display: "block",
-    cursor: "not-allowed",
-  }
+  const [manualCc, setManualCc] = useState(initialCc);
+  const [manualBcc, setManualBcc] = useState(initialBcc);
 
   return (
     <main className="template-page">
@@ -38,37 +27,29 @@ function TemplatePage({
       
       <label className="template-field">
         CC
-        {csvHasCc && (
-          <span style={{ color: "green", marginLeft: "8px" }}>
-            Uploaded CSV file contains a 'CC' column. This will be used for CC recipients.
-          </span>
-        )}
         <input
           type="text"
-          value={csvHasCc ? "From CSV file" : cc}
-          onChange={event => !csvHasCc &&  setCc(event.target.value)}
+          value={csvHasCc ? "Uploaded CSV file contains a 'CC' column. This will be used for CC recipients." : manualCc}
+          onChange={event => !csvHasCc && setManualCc(event.target.value)}
           disabled={csvHasCc}
+          style={{color: csvHasCc ? "rgba(0, 0, 0, 0.55)" : undefined,
+                  cursor: csvHasCc ? "not-allowed" : undefined}}
           placeholder="CC"
-          style={csvHasCc ? inactiveFieldStyle : activeFieldStyle}
         />
       </label>
 
       <label className="template-field">
         BCC
-        {csvHasBcc && (
-          <span>
-            Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients.
-          </span>
-        )}
-        </label>
         <input
           type="text"
-          value={csvHasBcc ? "From CSV file" : bcc}
-          onChange={event => !csvHasBcc &&  setBcc(event.target.value)}
+          value={csvHasBcc ? "Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients." : manualBcc}
+          onChange={event => !csvHasBcc &&  setManualBcc(event.target.value)}
           disabled={csvHasBcc}
+          style={{color: csvHasBcc ? "rgba(0, 0, 0, 0.55)" : undefined,
+                  cursor: csvHasBcc ? "not-allowed" : undefined}}
           placeholder="BCC"
-          style={csvHasBcc ? inactiveFieldStyle : activeFieldStyle}
         />
+      </label>
 
       <label className="template-field">
         Subject
@@ -76,8 +57,7 @@ function TemplatePage({
           type="text"
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
-          placeholder="Email subject"
-          style={activeFieldStyle}
+          placeholder="Subject"
         />
       </label>
 
@@ -92,7 +72,7 @@ function TemplatePage({
         <button
           type="button"
           className="template-next"
-          onClick={() => onNext(content, subject, cc, bcc)}
+          onClick={() => onNext(content, subject, manualCc, manualBcc)}
           disabled={!content.replace(/<[^>]*>/g, "").trim()}
         >
           Preview emails

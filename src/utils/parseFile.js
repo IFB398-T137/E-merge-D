@@ -72,15 +72,3 @@ export async function parseFile(file) {
     const text = await readFileAsText(file)
     return parseCSV(text)
 }
-
-
-// process the email cell values to handle multiple emails
-export function parseEmailCell(value) {
-    if (!value || typeof value !== 'string') return []
-    return value.split(',').map(email => email.trim()).filter(email => email.length > 0).filter(email => validateEmail(email))
-}
-
-export function validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-}
