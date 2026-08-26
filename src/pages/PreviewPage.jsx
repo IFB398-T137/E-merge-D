@@ -253,7 +253,7 @@ function PreviewPage({
               }}
             >
               <span className="recipient-email">
-                {item.to || <em>(missing)</em>}
+                To: {item.to || <em>(missing)</em>}
               </span>
               {item.isEdited && (<span className="edited-badge">Edited</span>)}
               {item.warnings.length > 0 && (
@@ -261,10 +261,10 @@ function PreviewPage({
               )}
 
               <span className="recipient-email">
-                {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
+                CC: {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
               </span>
               <span className="recipient-email">
-                {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
+                BCC: {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
               </span>
               {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (
