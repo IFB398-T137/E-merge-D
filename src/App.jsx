@@ -33,6 +33,7 @@ function App() {
   const [manualCc, setManualCc] = useState (savedWorkflow?.manualCc || "");
   const [manualBcc, setManualBcc] = useState (savedWorkflow?.manualBcc || "");
 
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -67,7 +68,15 @@ function App() {
           setAlertCcBcc={setAlertCcBcc}
           selectedFileName={selectedFileName}
           setSelectedFileName={setSelectedFileName}
-          onClearFile={() => {
+          on
+          
+          
+          
+          
+          
+          
+          
+          File={() => {
             setCsvData([]);
             setSelectedFileName("");
             setEmailEdits({});
@@ -114,6 +123,8 @@ function App() {
           bcc={manualBcc}
           csvHasCc={CsvHeaderFields.hasCc}
           csvHasBcc={CsvHeaderFields.hasBcc}
+          attachments={attachments}
+          setAttachments={setAttachments}
           onSaveEmailEdit={(index, content) => {
             setEmailEdits((currentEdits) => ({ ...currentEdits, [index]: content }));
           }}

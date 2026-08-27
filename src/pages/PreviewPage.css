@@ -194,6 +194,111 @@
   background: rgba(17, 24, 39, 0.55);
 }
 
+.confirmation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.confirmation-modal {
+  width: min(480px, 100%);
+  padding: 1.5rem;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  text-align: left;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+}
+
+.confirmation-modal p + p {
+  margin-top: 0.75rem;
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.confirmation-create {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.attachment-section {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #374151;
+  text-align: left;
+}
+
+.attachment-section h2 {
+  margin-bottom: 0.25rem;
+}
+
+.attachment-section p {
+  font-size: 0.9rem;
+}
+
+.attachment-picker {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.attachment-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.attachment-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.attachment-list button {
+  color: #b91c1c;
+}
+
+.draft-status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #111827;
+}
+
 .email-editor-modal {
   width: min(850px, 100%);
   max-height: calc(100vh - 3rem);
