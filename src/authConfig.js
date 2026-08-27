@@ -10,5 +10,5 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
-  scopes: ["User.Read", "Mail.ReadWrite"],
+  scopes: ["User.Read", "https://graph.microsoft.com/Mail.ReadWrite"],
 };

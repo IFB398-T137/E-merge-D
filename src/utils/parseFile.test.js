@@ -40,4 +40,17 @@ describe("parseFile", () => {
     expect(result.headers).toEqual(["FirstName", "Team"]);
     expect(result.data).toEqual([{ FirstName: "Pat", Team: "" }]);
   });
+
+  it("ignores empty rows in the CSV file", async () => {
+    const csvContent = "FirstName,Team\nPat,T137\n\n";
+    const file = new File([csvContent], "test.csv", { type: "text/csv" });
+
+    const result = await parseFile(file);
+
+    expect(result.headers).toEqual(["FirstName", "Team"]);
+    expect(result.data).toEqual([{ FirstName: "Pat", Team: "T137" }]);
+  }); 
+
+  //add test: handles multiple emails in a single cell separated by commas and trims whitespace from each value
+
 });

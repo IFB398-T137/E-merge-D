@@ -27,6 +27,12 @@ function App() {
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
+  const [CsvHeaderFields, setCsvHeaderFields] = useState(savedWorkflow?.CsvHeaderFields || { hasCc: false, hasBcc: false });
+  //const [processRecipientArrays, setProcessRecipientArrays] = useState(savedWorkflow?.processRecipientArrays || { ccArray: [], bccArray: [] });
+  const [alertCcBcc, setAlertCcBcc] = useState(savedWorkflow?.alertCcBcc || "");
+  const [manualCc, setManualCc] = useState (savedWorkflow?.manualCc || "");
+  const [manualBcc, setManualBcc] = useState (savedWorkflow?.manualBcc || "");
+
   const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
@@ -39,23 +45,45 @@ function App() {
         body,
         subject,
         emailEdits,
+        CsvHeaderFields,
+        alertCcBcc,
+        manualCc,
+        manualBcc
       }),
     );
-  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject]);
+  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc,  
+  ]);
 
   return (
     <div>
       {currentPage === "upload" && (
         <UploadPage
-          onNext={() => setCurrentPage("template")}
+          onNext={() => 
+            setCurrentPage("template")}
           setCsvData={setCsvData}
           csvData={csvData}
+          CsvHeaderFields={CsvHeaderFields}
+          setCsvHeaderFields={setCsvHeaderFields}
+          alertCcBcc={alertCcBcc}
+          setAlertCcBcc={setAlertCcBcc}
           selectedFileName={selectedFileName}
           setSelectedFileName={setSelectedFileName}
-          onClearFile={() => {
+          on
+          
+          
+          
+          
+          
+          
+          
+          File={() => {
             setCsvData([]);
             setSelectedFileName("");
             setEmailEdits({});
+            setAlertCcBcc("");
+            setCsvHeaderFields({ hasCc: false, hasBcc: false });
+            setManualCc("");
+            setManualBcc("");
           }}
         />
       )}
@@ -63,14 +91,22 @@ function App() {
       {currentPage === "template" && (
         <TemplatePage
           onBack={() => setCurrentPage("upload")}
-          onNext={(templateBody, newSubject) => {
+          onNext={(templateBody, newSubject, cc, bcc) => {
             setEmailEdits((currentEdits) => (templateBody === body ? currentEdits : {}));
             setBody(templateBody);
             setSubject(newSubject);
+            setManualCc(cc);
+            setManualBcc(bcc);
+            //setManualCc(manualCc)
+            //setManualBcc(manualBcc);
             setCurrentPage("preview");
           }}
+          csvHasCc={CsvHeaderFields.hasCc}
+          csvHasBcc={CsvHeaderFields.hasBcc}
           initialContent={body}
           initialSubject={subject}
+          initialCc={manualCc}
+          initialBcc={manualBcc}
         />
       )}
 
@@ -80,6 +116,13 @@ function App() {
           body={body}
           subject={subject}
           emailEdits={emailEdits}
+          //setProcessRecipientArrays={processRecipientArrays.ccArray, processRecipientArrays.bccArray}
+          //cc={{processRecipientArrays.ccArray }
+          //bcc={setProcessRecipientArrays.bccArray}}
+          cc={manualCc}
+          bcc={manualBcc}
+          csvHasCc={CsvHeaderFields.hasCc}
+          csvHasBcc={CsvHeaderFields.hasBcc}
           attachments={attachments}
           setAttachments={setAttachments}
           onSaveEmailEdit={(index, content) => {
@@ -87,7 +130,6 @@ function App() {
           }}
           onBack={() => setCurrentPage("template")} />
       )}
-
       
     </div>
   );

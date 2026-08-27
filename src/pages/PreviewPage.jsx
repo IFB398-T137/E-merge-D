@@ -4,6 +4,9 @@ import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
+import { validateRow } from "../utils/validateCsv";
+import { processRecipientArrays } from "../utils/processRecipients.js";
+
 import {
   formatFileSize,
   prepareGraphAttachments,
@@ -57,18 +60,11 @@ async function verifyGraphProfileAccess(accessToken) {
   }
 }
 
-function validateRow(row) {
-  const warnings = [];
-
-  const hasRecipient =
-    row && (row.RecipientEmail || row.Email || row.recipientemail || row.email);
-
-  if (!hasRecipient) warnings.push("missing-recipient");
-
-  return warnings;
-}
-
-function EmailEditorModal({ content, onCancel, onSave }) {
+function EmailEditorModal({ 
+  content, 
+  onCancel, 
+  onSave,
+}) {
   const [editedContent, setEditedContent] = useState(content);
 
   return (
@@ -136,6 +132,10 @@ function PreviewPage({
   csvData,
   body,
   subject = "E-merge-D Test Email",
+  cc,
+  bcc,
+  csvHasCc,
+  csvHasBcc,
   emailEdits = {},
   attachments = [],
   setAttachments,
@@ -149,14 +149,24 @@ function PreviewPage({
   const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
+  // CC not working - check object types, csv saved in array, manual entry cc is cleaned up and then save in an array, if hasCc then no action but if !hasCc, use manualCcs
+
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
-    const to =
-      (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
+    const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
+    const { cc: rowCc, bcc: rowBcc } = processRecipientArrays({
+      row,
+      csvHasCc,
+      csvHasBcc,
+      manualCc: cc,
+      manualBcc: bcc,
+    });
 
     return {
       to,
+      cc: rowCc,
+      bcc: rowBcc,
       content,
       isEdited,
       warnings: validateRow(row),
@@ -173,6 +183,8 @@ function PreviewPage({
       await verifyGraphProfileAccess(accessToken);
       await createOutlookDraft(accessToken, {
         to: email.to,
+        cc: email.cc,
+        bcc: email.bcc,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -190,6 +202,8 @@ function PreviewPage({
       await verifyGraphProfileAccess(refreshedToken);
       await createOutlookDraft(refreshedToken, {
         to: email.to,
+        cc: email.cc,
+        bcc: email.bcc,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -354,7 +368,14 @@ function PreviewPage({
               }}
             >
               <span className="recipient-email">
-                {item.to || <em>(missing)</em>}
+                To: {item.to || <em>(missing)</em>}
+              </span>
+
+              <span className="recipient-email">
+                CC: {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
+              </span>
+              <span className="recipient-email">
+                BCC: {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
               </span>
               {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (
@@ -480,6 +501,5 @@ function PreviewPage({
       </div>
     </div>
   );
-}
-
+} 
 export default PreviewPage;
