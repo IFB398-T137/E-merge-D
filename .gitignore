@@ -13,7 +13,6 @@ dist-ssr
 *.local
 
 .env
-release/
 
 # Editor directories and files
 .vscode/*
@@ -25,5 +24,6 @@ release/
 *.njsproj
 *.sln
 *.sw?
+release/
 
 experiments/fake_mail_merge_data_may11.csv
