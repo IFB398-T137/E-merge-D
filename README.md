@@ -58,3 +58,13 @@ The application always displays a final confirmation before creating a single dr
 ```bash
 npm test
 ```
+
+# Build Windows portable exe
+
+Run:
+
+npm install
+npm run build
+npx electron-builder --win portable --x64 -c.directories.output=release.
+
+Once the .exe is built in release/ the portable installer is ready!

@@ -219,6 +219,10 @@
   margin-top: 0.75rem;
 }
 
+.confirmation-modal #confirmation-title {
+  color: #111827;
+}
+
 .confirmation-actions {
   display: flex;
   justify-content: flex-end;
