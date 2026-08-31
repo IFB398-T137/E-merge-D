@@ -7,3 +7,8 @@ contextBridge.exposeInMainWorld("eMergeDAuth", {
   getAccessToken: (options = {}) =>
     ipcRenderer.invoke("auth:get-access-token", options),
 });
+
+contextBridge.exposeInMainWorld("eMergeDFiles", {
+  exportAllEml: (data) =>
+    ipcRenderer.invoke("files:export-all-eml", data),
+});
