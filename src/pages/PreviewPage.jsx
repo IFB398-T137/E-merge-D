@@ -6,6 +6,7 @@ import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
 import { validateRow } from "../utils/validateCsv";
 import { processRecipientArrays } from "../utils/processRecipients.js";
+import { downloadEml } from "../utils/emlExport";
 
 import {
   formatFileSize,
@@ -248,6 +249,84 @@ function PreviewPage({
     }
   }
 
+  async function exportSelectedEml() {
+  try {
+    const email = merged[selectedRow];
+
+    if (!email?.to) {
+      setStatus(
+        "Cannot export .eml because this row is missing an email address.",
+      );
+      return;
+    }
+
+    await downloadEml({
+      to: email.to,
+      cc: email.cc,
+      bcc: email.bcc,
+      subject,
+      htmlBody: email.content,
+      attachments,
+    });
+
+    setStatus(`Exported .eml for ${email.to}`);
+  } catch (error) {
+    console.error(error);
+    setStatus(`Could not export .eml: ${error.message}`);
+  }
+}
+
+async function exportAllEmlFiles() {
+  try {
+    const missingRecipientCount = merged.filter(
+      (email) => !email.to,
+    ).length;
+
+    if (missingRecipientCount > 0) {
+      setStatus(
+        `Cannot export .eml files because ${missingRecipientCount} row${
+          missingRecipientCount === 1 ? " is" : "s are"
+        } missing an email address.`,
+      );
+      return;
+    }
+
+    setStatus("Preparing .eml files...");
+
+    const emlAttachments =
+      await prepareGraphAttachments(attachments);
+
+    const result =
+      await window.eMergeDFiles.exportAllEml({
+        emails: merged.map((email) => ({
+          to: email.to,
+          cc: email.cc,
+          bcc: email.bcc,
+          content: email.content,
+        })),
+        subject,
+        attachments: emlAttachments,
+      });
+
+    if (result.canceled) {
+      setStatus("EML export cancelled.");
+      return;
+    }
+
+    setStatus(
+      `Exported ${result.count} .eml file${
+        result.count === 1 ? "" : "s"
+      } to ${result.folder}`,
+    );
+  } catch (error) {
+    console.error(error);
+
+    setStatus(
+      `Could not export .eml files: ${error.message}`,
+    );
+  }
+}
+
   async function sendAllDrafts() {
     let accessToken = "";
 
@@ -308,17 +387,6 @@ function PreviewPage({
     event.target.value = "";
   }
 
-  function requestSingleDraft() {
-    const email = merged[selectedRow];
-
-    if (!email?.to) {
-      setStatus("Cannot create draft because this row is missing an email address.");
-      return;
-    }
-
-    setPendingDraftAction({ type: "single", index: selectedRow });
-  }
-
   function requestAllDrafts() {
     const missingRecipientCount = merged.filter((email) => !email.to).length;
 
@@ -342,6 +410,7 @@ function PreviewPage({
       void sendAllDrafts();
     }
   }
+
 
   return (
     <div>
@@ -491,8 +560,12 @@ function PreviewPage({
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
         <button onClick={onBack} disabled={isCreatingDrafts}>Back</button>
 
-        <button onClick={requestSingleDraft} disabled={isCreatingDrafts || !merged.length}>
-          Create this Outlook draft
+        <button
+          type="button"
+          onClick={exportAllEmlFiles}
+          disabled={merged.length === 0 || isCreatingDrafts}
+        >
+          Export all .eml files
         </button>
 
         <button onClick={requestAllDrafts} disabled={isCreatingDrafts || !merged.length}>

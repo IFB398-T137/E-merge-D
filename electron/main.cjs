@@ -1,8 +1,14 @@
 const path = require("path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+} = require("electron");
 const { startServer } = require("./server.cjs");
 const AuthProvider = require("./AuthProvider.cjs");
 const { msalConfig, GRAPH_SCOPES } = require("./authConfig.cjs");
+const { exportEmlFiles } = require("./emlExporter.cjs");
 
 const APP_PORT = 42813;
 
@@ -29,6 +35,37 @@ function registerAuthHandlers() {
       forceRefresh: Boolean(options.forceRefresh),
       allowInteractive: options.allowInteractive !== false,
     });
+  });
+}
+
+function registerFileHandlers() {
+  ipcMain.handle("files:export-all-eml", async (_event, data) => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose folder for exported emails",
+      properties: ["openDirectory", "createDirectory"],
+    });
+
+    if (result.canceled || !result.filePaths[0]) {
+      return {
+        canceled: true,
+        count: 0,
+      };
+    }
+
+    const folder = result.filePaths[0];
+
+    await exportEmlFiles(
+      folder,
+      data.emails,
+      data.subject,
+      data.attachments,
+    );
+
+    return {
+      canceled: false,
+      count: data.emails.length,
+      folder,
+    };
   });
 }
 
@@ -62,8 +99,9 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerAuthHandlers();
+  registerFileHandlers();
   createWindow();
-
+  
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
