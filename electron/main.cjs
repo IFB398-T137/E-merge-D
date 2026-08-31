@@ -8,7 +8,7 @@ const {
 const { startServer } = require("./server.cjs");
 const AuthProvider = require("./AuthProvider.cjs");
 const { msalConfig, GRAPH_SCOPES } = require("./authConfig.cjs");
-const { exportEmlFiles } = require("./emlExporter.cjs");
+const { exportEmlFiles } = require("./emlExport.cjs");
 
 const APP_PORT = 42813;
 
@@ -87,11 +87,6 @@ function createWindow() {
 
   server = startServer();
 
-  server.listen(42813, () => {
-    port = server.address().port;
-    mainWindow.loadURL(`http://127.0.0.1:42813`);
-  });
-
   server.listen(APP_PORT, "127.0.0.1", () => {
     mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`);
   });
@@ -101,7 +96,7 @@ app.whenReady().then(() => {
   registerAuthHandlers();
   registerFileHandlers();
   createWindow();
-  
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();

@@ -6,7 +6,6 @@ import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
 import { validateRow } from "../utils/validateCsv";
 import { processRecipientArrays } from "../utils/processRecipients.js";
-import { downloadEml } from "../utils/emlExport";
 
 import {
   formatFileSize,
@@ -248,33 +247,6 @@ function PreviewPage({
       setIsCreatingDrafts(false);
     }
   }
-
-  async function exportSelectedEml() {
-  try {
-    const email = merged[selectedRow];
-
-    if (!email?.to) {
-      setStatus(
-        "Cannot export .eml because this row is missing an email address.",
-      );
-      return;
-    }
-
-    await downloadEml({
-      to: email.to,
-      cc: email.cc,
-      bcc: email.bcc,
-      subject,
-      htmlBody: email.content,
-      attachments,
-    });
-
-    setStatus(`Exported .eml for ${email.to}`);
-  } catch (error) {
-    console.error(error);
-    setStatus(`Could not export .eml: ${error.message}`);
-  }
-}
 
 async function exportAllEmlFiles() {
   try {
