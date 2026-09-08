@@ -24,6 +24,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-release/
+release./
 
 experiments/fake_mail_merge_data_may11.csv
