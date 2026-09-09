@@ -6,6 +6,7 @@ export async function createOutlookDraft(
     to,
     cc = [],
     bcc = [],
+    replyTo,
     subject,
     htmlBody,
     attachments = [],
@@ -18,6 +19,7 @@ export async function createOutlookDraft(
   }
 
   const toRecipients = parseEmailCell(to);
+  const replyToRecipients = parseEmailCell(replyTo);
 
   const emailFields = {
     subject,
@@ -28,7 +30,7 @@ export async function createOutlookDraft(
     toRecipients: toRecipients.map((email) => ({
       emailAddress: {
         address: email,
-      },
+    }
     })),
   };
 
@@ -42,6 +44,14 @@ export async function createOutlookDraft(
 
   if (bcc.length > 0) {
     emailFields.bccRecipients = bcc.map((email) => ({
+      emailAddress: {
+        address: email,
+      },
+    }));
+  }
+
+  if (replyToRecipients.length > 0) {
+    emailFields.replyTo = replyToRecipients.map((email) => ({
       emailAddress: {
         address: email,
       },

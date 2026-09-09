@@ -134,6 +134,7 @@ function PreviewPage({
   subject = "E-merge-D Test Email",
   cc,
   bcc,
+  replyTo,
   csvHasCc,
   csvHasBcc,
   emailEdits = {},
@@ -149,11 +150,10 @@ function PreviewPage({
   const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
-  // CC not working - check object types, csv saved in array, manual entry cc is cleaned up and then save in an array, if hasCc then no action but if !hasCc, use manualCcs
-
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
+    const rowReplyTo = (row && (row.ReplyTo || row.replyto)) || replyTo || "";
     const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
     const { cc: rowCc, bcc: rowBcc } = processRecipientArrays({
       row,
@@ -161,12 +161,14 @@ function PreviewPage({
       csvHasBcc,
       manualCc: cc,
       manualBcc: bcc,
+      manualReplyTo: replyTo,
     });
 
     return {
       to,
       cc: rowCc,
       bcc: rowBcc,
+      replyTo: rowReplyTo,
       content,
       isEdited,
       warnings: validateRow(row),
@@ -185,6 +187,7 @@ function PreviewPage({
         to: email.to,
         cc: email.cc,
         bcc: email.bcc,
+        replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -204,6 +207,7 @@ function PreviewPage({
         to: email.to,
         cc: email.cc,
         bcc: email.bcc,
+        replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -274,6 +278,7 @@ async function exportAllEmlFiles() {
           to: email.to,
           cc: email.cc,
           bcc: email.bcc,
+          replyTo: email.replyTo,
           content: email.content,
         })),
         subject,
@@ -411,7 +416,6 @@ async function exportAllEmlFiles() {
               <span className="recipient-email">
                 To: {item.to || <em>(missing)</em>}
               </span>
-
               <span className="recipient-email">
                 CC: {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
               </span>

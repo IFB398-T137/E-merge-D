@@ -11,11 +11,13 @@ function TemplatePage({
   initialBcc = "",
   csvHasCc,
   csvHasBcc,
+  initialReplyTo = "",
 }) {
   const [content, setContent] = useState(initialContent);
   const [subject, setSubject] = useState(initialSubject);
   const [manualCc, setManualCc] = useState(initialCc);
   const [manualBcc, setManualBcc] = useState(initialBcc);
+  const [replyTo, setReplyTo] = useState(initialReplyTo);
 
   return (
     <main className="template-page">
@@ -50,6 +52,16 @@ function TemplatePage({
           placeholder="BCC"
         />
       </label>
+      
+      <label className="template-field">
+        Reply To
+        <input
+          type="text"
+          value={replyTo}
+          onChange={(event) => setReplyTo(event.target.value)}
+          placeholder="Reply To"
+        />
+      </label>
 
       <label className="template-field">
         Subject
@@ -72,7 +84,7 @@ function TemplatePage({
         <button
           type="button"
           className="template-next"
-          onClick={() => onNext(content, subject, manualCc, manualBcc)}
+          onClick={() => onNext(content, subject, manualCc, manualBcc, replyTo)}
           disabled={!content.replace(/<[^>]*>/g, "").trim()}
         >
           Preview emails
