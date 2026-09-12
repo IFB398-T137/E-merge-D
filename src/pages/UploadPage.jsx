@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { parseFile } from "../utils/parseFile";
 import { validateCsvHeaders, CsvHeaderFields } from "../utils/validateCsv";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
+import "./UploadPage.css";
 
 function UploadPage({
   onNext,
@@ -16,6 +17,7 @@ function UploadPage({
 }) {
   const [previewRows, setPreviewRows] = useState(() => csvData.slice(0, 3));
   const fileInputRef = useRef(null);
+  const previewColumns = Object.keys(previewRows[0] ?? {});
 
   const { signIn, isAuthenticated } = useDesktopAuth();
 
@@ -114,10 +116,45 @@ function UploadPage({
       </div>
 
       {previewRows.length > 0 && (
-        <div>
-          <h2>Preview uploaded data</h2>
-          <pre>{JSON.stringify(previewRows, null, 2)}</pre>
-        </div>
+        <section className="upload-preview" aria-labelledby="upload-preview-title">
+          <div className="upload-preview-heading">
+            <h2 id="upload-preview-title">Preview uploaded data</h2>
+            <p id="upload-preview-summary">
+              Preview here is limited to the first 3 data rows. Your file contains {csvData.length} recipient{csvData.length === 1 ? "" : "s"} in total.
+            </p>
+          </div>
+          <div
+            className="upload-preview-scroll"
+            role="region"
+            aria-labelledby="upload-preview-title"
+            tabIndex={0}
+          >
+            <table aria-labelledby="upload-preview-title" aria-describedby="upload-preview-summary">
+              <thead>
+                <tr>
+                  <th scope="col" className="upload-preview-row-number">Row</th>
+                  {previewColumns.map((column) => (
+                    <th scope="col" key={column}>{column}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, index) => (
+                  <tr key={index}>
+                    <th scope="row" className="upload-preview-row-number">{index + 1}</th>
+                    {previewColumns.map((column) => (
+                      <td key={column}>
+                        {row[column] === "" || row[column] == null
+                          ? <span className="upload-preview-empty" aria-label="Empty">—</span>
+                          : String(row[column])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>

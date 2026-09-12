@@ -1,0 +1,81 @@
+.upload-preview {
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  text-align: left;
+}
+
+.upload-preview-heading {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-preview-heading h2 {
+  margin-bottom: 6px;
+}
+
+.upload-preview-heading p {
+  font-size: 0.85rem;
+}
+
+.upload-preview-scroll {
+  overflow-x: auto;
+}
+
+.upload-preview-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.upload-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.upload-preview th,
+.upload-preview td {
+  padding: 14px 20px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.upload-preview thead {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.upload-preview thead th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.upload-preview tbody tr + tr {
+  border-top: 1px solid var(--border);
+}
+
+.upload-preview tbody tr:nth-child(even) {
+  background: var(--social-bg);
+}
+
+.upload-preview td {
+  min-width: 140px;
+  max-width: 320px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: var(--text-h);
+}
+
+.upload-preview .upload-preview-row-number {
+  width: 1%;
+  color: var(--text);
+  font-weight: 500;
+  text-align: center;
+}
+
+.upload-preview-empty {
+  color: var(--text);
+}
