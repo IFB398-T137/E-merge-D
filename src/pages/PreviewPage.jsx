@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
@@ -144,11 +144,31 @@ function PreviewPage({
   onBack,
 }) {
   const [selectedRow, setSelectedRow] = useState(0);
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [activeMatch, setActiveMatch] = useState(0);
+  const searchInputRef = useRef(null);
+  const recipientRefs = useRef([]);
+
   const [status, setStatus] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [pendingDraftAction, setPendingDraftAction] = useState(null);
   const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
+
+  useEffect(() => {
+    function handleFind(event) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f" && !isEditing && !pendingDraftAction) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    }
+    window.addEventListener("keydown", handleFind);
+    return () => window.removeEventListener("keydown", handleFind);
+  }, [isEditing, pendingDraftAction]);
+
+
+  // CC not working - check object types, csv saved in array, manual entry cc is cleaned up and then save in an array, if hasCc then no action but if !hasCc, use manualCcs
 
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
@@ -164,7 +184,14 @@ function PreviewPage({
       manualReplyTo: replyTo,
     });
 
+    const name = Object.entries(row || {})
+      .filter(([header]) => /name/i.test(header))
+      .map(([, value]) => value)
+      .filter(Boolean)
+      .join(" ");
+
     return {
+      name,
       to,
       cc: rowCc,
       bcc: rowBcc,
@@ -174,6 +201,44 @@ function PreviewPage({
       warnings: validateRow(row),
     };
   });
+
+  const searchTerm = recipientSearch.trim().toLowerCase();
+  const matchingRows = merged.flatMap((item, index) =>
+    searchTerm && [item.name, item.to, ...item.cc, ...item.bcc]
+      .some((value) => String(value).toLowerCase().includes(searchTerm))
+      ? [index] : [],
+  );
+  const matchingRowSet = new Set(matchingRows);
+  const activeMatchRow = matchingRows[activeMatch];
+
+  useEffect(() => {
+    if (activeMatchRow !== undefined) {
+      recipientRefs.current[activeMatchRow]?.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeMatchRow, searchTerm]);
+
+  function moveMatch(direction) {
+    if (matchingRows.length) {
+      setActiveMatch((current) => (current + direction + matchingRows.length) % matchingRows.length);
+    }
+  }
+
+  function highlightMatch(value) {
+    const text = String(value || "");
+    if (!searchTerm || !text) return text;
+    const parts = [];
+    const lower = text.toLowerCase();
+    let start = 0;
+    let match = lower.indexOf(searchTerm);
+    while (match !== -1) {
+      parts.push(text.slice(start, match));
+      parts.push(<mark key={match}>{text.slice(match, match + searchTerm.length)}</mark>);
+      start = match + searchTerm.length;
+      match = lower.indexOf(searchTerm, start);
+    }
+    parts.push(text.slice(start));
+    return parts;
+  }
 
   async function createDraftWithFreshToken(
     email,
@@ -390,37 +455,67 @@ async function exportAllEmlFiles() {
 
 
   return (
-    <div>
-      <h1>Preview Page</h1>
+    <main className="preview-page">
+      <header className="preview-header"><h1>Preview emails</h1></header>
 
-      <div style={{ display: "flex", gap: "1.5rem" }}>
-        <div>
-          <p style={{ fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+      <div className="preview-layout">
+        <aside className="preview-sidebar" aria-label="Recipients">
+          <p className="recipient-count">
             {merged.length} recipients
           </p>
 
+          <div className="recipient-find">
+            <label htmlFor="recipient-search">Find recipients</label>
+            <input
+              ref={searchInputRef}
+              id="recipient-search"
+              type="search"
+              placeholder="Email or name"
+              value={recipientSearch}
+              onChange={(event) => {
+                setRecipientSearch(event.target.value);
+                setActiveMatch(0);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  moveMatch(event.shiftKey ? -1 : 1);
+                } else if (event.key === "Escape") {
+                  setRecipientSearch("");
+                  setActiveMatch(0);
+                }
+              }}
+            />
+            {searchTerm && (
+              <div className="recipient-find-controls">
+                <span role="status">
+                  {matchingRows.length ? `${activeMatch + 1} of ${matchingRows.length}` : "No matches"}
+                </span>
+                <button type="button" aria-label="Previous match" disabled={!matchingRows.length} onClick={() => moveMatch(-1)}>↑</button>
+                <button type="button" aria-label="Next match" disabled={!matchingRows.length} onClick={() => moveMatch(1)}>↓</button>
+              </div>
+            )}
+          </div>
+          <div className="recipient-list">
           {merged.map((item, index) => (
-            <div
+            <button
+              type="button"
+              aria-pressed={selectedRow === index}
+              className={`recipient-item${selectedRow === index ? " active" : ""}${item.isEdited ? " is-edited" : ""}${matchingRowSet.has(index) ? " search-match" : ""}${activeMatchRow === index ? " current-match" : ""}`}
+              ref={(element) => { recipientRefs.current[index] = element; }}
               key={index}
               onClick={() => setSelectedRow(index)}
-              style={{
-                padding: "7px 10px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "13px",
-                background: selectedRow === index ? "#f0f4ff" : "transparent",
-                border: item.isEdited ? "2px solid #7c3aed" : "1px solid #eee",
-                marginBottom: "6px",
-              }}
+
             >
+              {item.name && <span className="recipient-email">{highlightMatch(item.name)}</span>}
               <span className="recipient-email">
-                To: {item.to || <em>(missing)</em>}
+                To: {highlightMatch(item.to) || <em>(missing)</em>}
               </span>
               <span className="recipient-email">
-                CC: {Array.isArray(item.cc) ? item.cc.join(", ") : item.cc || <em>(missing)</em>}
+                CC: {highlightMatch(Array.isArray(item.cc) ? item.cc.join(", ") : item.cc) || <em>(missing)</em>}
               </span>
               <span className="recipient-email">
-                BCC: {Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc || <em>(missing)</em>}
+                BCC: {highlightMatch(Array.isArray(item.bcc) ? item.bcc.join(", ") : item.bcc) || <em>(missing)</em>}
               </span>
               {item.isEdited && <span className="edited-badge">Edited</span>}
               {item.warnings.length > 0 && (
@@ -428,19 +523,51 @@ async function exportAllEmlFiles() {
                   ⚠
                 </span>
               )}
-            </div>
+            </button>
           ))}
-        </div>
+          </div>
+        </aside>
 
-        <div style={{ flex: 1 }}>
+        <div className="preview-main">
           <div className="preview-email-heading">
-            <p style={{ fontSize: "12px", color: "gray", marginBottom: "8px" }}>
-              Previewing {selectedRow + 1} of {merged.length}
+            <p className="preview-counter">
+              Previewing {merged.length ? selectedRow + 1 : 0} of {merged.length}
             </p>
+            <div className="preview-email-tools">
+            <label className="attachment-picker">
+              Add attachments
+              <input type="file" multiple onChange={handleAttachmentSelection} aria-describedby="attachment-help" />
+            </label>
             <button type="button" onClick={() => setIsEditing(true)} disabled={!merged.length}>
               Edit this email
             </button>
+            </div>
           </div>
+
+      <section className="attachment-section" aria-labelledby="attachment-heading">
+        <div>
+          <h2 id="attachment-heading">Attachments ({attachments.length})</h2>
+          <p id="attachment-help">Selected files will be attached to every draft. Each file must be smaller than 3 MB.</p>
+        </div>
+
+
+        {attachments.length > 0 && (
+          <ul className="attachment-list">
+            {attachments.map((file) => (
+              <li key={`${file.name}:${file.size}:${file.lastModified}`}>
+                <span>{file.name} ({formatFileSize(file.size)})</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachments((currentAttachments) => currentAttachments.filter((item) => item !== file))}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
           <iframe
             title="Email preview"
@@ -494,33 +621,6 @@ async function exportAllEmlFiles() {
         />
       )}
 
-      <section className="attachment-section" aria-labelledby="attachment-heading">
-        <div>
-          <h2 id="attachment-heading">Attachments</h2>
-          <p>Selected files will be attached to every draft. Each file must be smaller than 3 MB.</p>
-        </div>
-        <label className="attachment-picker">
-          Add files
-          <input type="file" multiple onChange={handleAttachmentSelection} />
-        </label>
-
-        {attachments.length > 0 && (
-          <ul className="attachment-list">
-            {attachments.map((file) => (
-              <li key={`${file.name}:${file.size}:${file.lastModified}`}>
-                <span>{file.name} ({formatFileSize(file.size)})</span>
-                <button
-                  type="button"
-                  onClick={() => setAttachments((currentAttachments) => currentAttachments.filter((item) => item !== file))}
-                  aria-label={`Remove ${file.name}`}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       {pendingDraftAction && (
         <ConfirmationModal
@@ -531,9 +631,10 @@ async function exportAllEmlFiles() {
         />
       )}
 
+      <footer className="preview-footer">
       {status && <p className="draft-status" role="status">{status}</p>}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+      <div className="preview-actions">
         <button onClick={onBack} disabled={isCreatingDrafts}>Back</button>
 
         <button
@@ -548,7 +649,8 @@ async function exportAllEmlFiles() {
           Create all Outlook drafts
         </button>
       </div>
-    </div>
+      </footer>
+    </main>
   );
 } 
 export default PreviewPage;

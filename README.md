@@ -67,4 +67,4 @@ npm install
 npm run build
 npx electron-builder --win portable --x64 -c.directories.output=release.
 
-Once the .exe is built in release/ the portable installer is ready!
+Once the .exe is built in release/ the portable installer is ready
