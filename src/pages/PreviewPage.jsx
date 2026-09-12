@@ -134,6 +134,7 @@ function PreviewPage({
   subject = "E-merge-D Test Email",
   cc,
   bcc,
+  replyTo,
   csvHasCc,
   csvHasBcc,
   emailEdits = {},
@@ -172,6 +173,7 @@ function PreviewPage({
   const merged = csvData.map((row, index) => {
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
+    const rowReplyTo = (row && (row.ReplyTo || row.replyto)) || replyTo || "";
     const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
     const { cc: rowCc, bcc: rowBcc } = processRecipientArrays({
       row,
@@ -179,6 +181,7 @@ function PreviewPage({
       csvHasBcc,
       manualCc: cc,
       manualBcc: bcc,
+      manualReplyTo: replyTo,
     });
 
     const name = Object.entries(row || {})
@@ -192,6 +195,7 @@ function PreviewPage({
       to,
       cc: rowCc,
       bcc: rowBcc,
+      replyTo: rowReplyTo,
       content,
       isEdited,
       warnings: validateRow(row),
@@ -248,6 +252,7 @@ function PreviewPage({
         to: email.to,
         cc: email.cc,
         bcc: email.bcc,
+        replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -267,6 +272,7 @@ function PreviewPage({
         to: email.to,
         cc: email.cc,
         bcc: email.bcc,
+        replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
         attachments: graphAttachments,
@@ -337,6 +343,7 @@ async function exportAllEmlFiles() {
           to: email.to,
           cc: email.cc,
           bcc: email.bcc,
+          replyTo: email.replyTo,
           content: email.content,
         })),
         subject,
@@ -504,7 +511,6 @@ async function exportAllEmlFiles() {
               <span className="recipient-email">
                 To: {highlightMatch(item.to) || <em>(missing)</em>}
               </span>
-
               <span className="recipient-email">
                 CC: {highlightMatch(Array.isArray(item.cc) ? item.cc.join(", ") : item.cc) || <em>(missing)</em>}
               </span>
