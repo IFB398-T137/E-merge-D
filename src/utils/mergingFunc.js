@@ -2,12 +2,17 @@
 
 export function mergeContent(template, row) {
     return template.replace(/{{(.*?)}}/g, (placeholder, key) => {
-        const trimmedKey = key.trim()
+        const trimmedKey = key.trim();
 
-        if (!Object.prototype.hasOwnProperty.call(row, trimmedKey)) {
-            return placeholder
+        const Key = Object.keys(row).find(
+            (rowKey) => rowKey.trim().toLowerCase() === trimmedKey.toLowerCase()
+
+        );
+
+        if (Key === undefined) {
+            return placeholder;
         }
 
-        return row[trimmedKey] ?? ''
+        return row[Key] ?? '';
     });
 }
