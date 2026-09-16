@@ -140,7 +140,7 @@ function UploadPage({
           <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
           <li>Email is a MANDATORY header</li>
           <li>Each row will be used to generate one email</li>
-          <li>Optional Attachments column: list files relative to the CSV folder, separated by semicolons, e.g. attachments/alice.pdf;attachments/course-guide.pdf. Blank cells are allowed.</li>
+          <li>Attachments can be added by including a file path relative to the CSV folder under a header named &apos;Attachments&apos;.</li>
           <li>XLSX file format is not supported!</li>
         </ul>
       </div>
