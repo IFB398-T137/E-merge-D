@@ -9,7 +9,8 @@ import { processRecipientArrays } from "../utils/processRecipients.js";
 
 import {
   formatFileSize,
-  prepareGraphAttachments,
+  getRowAttachmentPaths,
+  prepareEmailAttachments,
   validateAttachmentSelection,
 } from "../utils/attachments";
 
@@ -99,7 +100,11 @@ function EmailEditorModal({
   );
 }
 
-function ConfirmationModal({ recipientCount, attachments, onCancel, onConfirm }) {
+function ConfirmationModal({ emails, globalAttachmentCount, onCancel, onConfirm }) {
+  const recipientCount = emails.length;
+  const rowAttachmentCount = emails.reduce((total, email) => total + email.attachmentPaths.length, 0);
+  const recipientsWithAttachments = emails.filter((email) => email.attachmentPaths.length > 0).length;
+
   return (
     <div
       className="confirmation-overlay"
@@ -113,10 +118,15 @@ function ConfirmationModal({ recipientCount, attachments, onCancel, onConfirm })
           This will create {recipientCount} draft{recipientCount === 1 ? "" : "s"}. It will not send any email.
         </p>
         <p>
-          {attachments.length === 0
+          {globalAttachmentCount === 0 && rowAttachmentCount === 0
             ? "No attachments will be added."
-            : `${attachments.length} attachment${attachments.length === 1 ? "" : "s"} will be added to every draft.`}
+            : `${globalAttachmentCount} global attachment${globalAttachmentCount === 1 ? "" : "s"} will be added to every draft.`}
         </p>
+        {rowAttachmentCount > 0 && (
+          <p>
+            {rowAttachmentCount} CSV attachment{rowAttachmentCount === 1 ? "" : "s"} will also be added across {recipientsWithAttachments} draft{recipientsWithAttachments === 1 ? "" : "s"}, each only to its corresponding recipient.
+          </p>
+        )}
         <div className="confirmation-actions">
           <button type="button" onClick={onCancel}>Cancel</button>
           <button type="button" className="confirmation-create" onClick={onConfirm} autoFocus>
@@ -130,6 +140,7 @@ function ConfirmationModal({ recipientCount, attachments, onCancel, onConfirm })
 
 function PreviewPage({
   csvData,
+  csvSourceId,
   body,
   subject = "E-merge-D Test Email",
   cc,
@@ -153,6 +164,8 @@ function PreviewPage({
   const [isEditing, setIsEditing] = useState(false);
   const [pendingDraftAction, setPendingDraftAction] = useState(null);
   const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const isBusy = isCreatingDrafts || isExporting || Boolean(pendingDraftAction);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
   useEffect(() => {
@@ -191,6 +204,8 @@ function PreviewPage({
       .join(" ");
 
     return {
+      rowIndex: index,
+      attachmentPaths: getRowAttachmentPaths(row),
       name,
       to,
       cc: rowCc,
@@ -244,7 +259,6 @@ function PreviewPage({
     email,
     accessToken,
     draftSubject,
-    graphAttachments,
   ) {
     try {
       await verifyGraphProfileAccess(accessToken);
@@ -255,7 +269,7 @@ function PreviewPage({
         replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
-        attachments: graphAttachments,
+        attachments: email.attachments,
       });
 
       return accessToken;
@@ -275,7 +289,7 @@ function PreviewPage({
         replyTo: email.replyTo,
         subject: draftSubject,
         htmlBody: email.content,
-        attachments: graphAttachments,
+        attachments: email.attachments,
       });
 
       return refreshedToken;
@@ -295,10 +309,6 @@ function PreviewPage({
 
     try {
       setIsCreatingDrafts(true);
-      setStatus("Creating draft...");
-      await ensureSignedIn();
-
-      accessToken = await getAccessToken();
       const email = merged[index];
 
       if (!email?.to) {
@@ -306,77 +316,71 @@ function PreviewPage({
         return;
       }
 
-      const graphAttachments = await prepareGraphAttachments(attachments);
-      await createDraftWithFreshToken(email, accessToken, subject, graphAttachments);
+      setStatus("Validating attachments...");
+      const [preparedEmail] = await prepareEmailAttachments({
+        emails: [email],
+        globalFiles: attachments,
+        csvSourceId,
+      });
+      await ensureSignedIn();
+      accessToken = await getAccessToken();
+      setStatus("Creating draft...");
+      await createDraftWithFreshToken(preparedEmail, accessToken, subject);
       setStatus(`Draft created for ${email.to}`);
     } catch (error) {
       console.error(error);
-      setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+      setStatus(`${error.message}${accessToken ? ` ${summarizeGraphToken(accessToken)}` : ""}`);
     } finally {
       setIsCreatingDrafts(false);
     }
   }
 
-async function exportAllEmlFiles() {
-  try {
-    const missingRecipientCount = merged.filter(
-      (email) => !email.to,
-    ).length;
+  async function exportAllEmlFiles() {
+    try {
+      setIsExporting(true);
+      const missingRecipientCount = merged.filter((email) => !email.to).length;
 
-    if (missingRecipientCount > 0) {
-      setStatus(
-        `Cannot export .eml files because ${missingRecipientCount} row${
-          missingRecipientCount === 1 ? " is" : "s are"
-        } missing an email address.`,
-      );
-      return;
-    }
+      if (missingRecipientCount > 0) {
+        setStatus(
+          `Cannot export .eml files because ${missingRecipientCount} row${missingRecipientCount === 1 ? " is" : "s are"} missing an email address.`,
+        );
+        return;
+      }
 
-    setStatus("Preparing .eml files...");
-
-    const emlAttachments =
-      await prepareGraphAttachments(attachments);
-
-    const result =
-      await window.eMergeDFiles.exportAllEml({
-        emails: merged.map((email) => ({
-          to: email.to,
-          cc: email.cc,
-          bcc: email.bcc,
-          replyTo: email.replyTo,
-          content: email.content,
-        })),
-        subject,
-        attachments: emlAttachments,
+      setStatus("Validating attachments...");
+      const preparedEmails = await prepareEmailAttachments({
+        emails: merged,
+        globalFiles: attachments,
+        csvSourceId,
       });
 
-    if (result.canceled) {
-      setStatus("EML export cancelled.");
-      return;
+      setStatus("Preparing .eml files...");
+      const result = await window.eMergeDFiles.exportAllEml({
+        emails: preparedEmails.map(({ to, cc, bcc, replyTo, content, attachments }) => ({
+          to, cc, bcc, replyTo, content, attachments,
+        })),
+        subject,
+      });
+
+      if (result.canceled) {
+        setStatus("EML export cancelled.");
+        return;
+      }
+
+      setStatus(`Exported ${result.count} .eml file${result.count === 1 ? "" : "s"} to ${result.folder}`);
+    } catch (error) {
+      console.error(error);
+      setStatus(`Could not export .eml files: ${error.message}`);
+    } finally {
+      setIsExporting(false);
     }
-
-    setStatus(
-      `Exported ${result.count} .eml file${
-        result.count === 1 ? "" : "s"
-      } to ${result.folder}`,
-    );
-  } catch (error) {
-    console.error(error);
-
-    setStatus(
-      `Could not export .eml files: ${error.message}`,
-    );
   }
-}
 
   async function sendAllDrafts() {
     let accessToken = "";
 
     try {
       setIsCreatingDrafts(true);
-      setStatus("Creating Outlook drafts...");
-      await ensureSignedIn();
-
       const missingRecipientCount = merged.filter((email) => !email.to).length;
 
       if (missingRecipientCount > 0) {
@@ -386,23 +390,28 @@ async function exportAllEmlFiles() {
         return;
       }
 
+      setStatus("Validating attachments...");
+      const preparedEmails = await prepareEmailAttachments({
+        emails: merged,
+        globalFiles: attachments,
+        csvSourceId,
+      });
+      await ensureSignedIn();
       accessToken = await getAccessToken();
-      const graphAttachments = await prepareGraphAttachments(attachments);
 
-      for (const [index, email] of merged.entries()) {
-        setStatus(`Creating draft ${index + 1} of ${merged.length}...`);
+      for (const [index, email] of preparedEmails.entries()) {
+        setStatus(`Creating draft ${index + 1} of ${preparedEmails.length}...`);
         accessToken = await createDraftWithFreshToken(
           email,
           accessToken,
           subject,
-          graphAttachments,
         );
       }
 
       setStatus(`Created ${merged.length} drafts.`);
     } catch (error) {
       console.error(error);
-      setStatus(`${error.message} ${summarizeGraphToken(accessToken)}`);
+      setStatus(`${error.message}${accessToken ? ` ${summarizeGraphToken(accessToken)}` : ""}`);
     } finally {
       setIsCreatingDrafts(false);
     }
@@ -534,11 +543,11 @@ async function exportAllEmlFiles() {
               Previewing {merged.length ? selectedRow + 1 : 0} of {merged.length}
             </p>
             <div className="preview-email-tools">
-            <label className="attachment-picker">
+            <label className={`attachment-picker${isBusy ? " is-disabled" : ""}`}>
               Add attachments
-              <input type="file" multiple onChange={handleAttachmentSelection} aria-describedby="attachment-help" />
+              <input type="file" multiple onChange={handleAttachmentSelection} aria-describedby="attachment-help" disabled={isBusy} />
             </label>
-            <button type="button" onClick={() => setIsEditing(true)} disabled={!merged.length}>
+            <button type="button" onClick={() => setIsEditing(true)} disabled={isBusy || !merged.length}>
               Edit this email
             </button>
             </div>
@@ -546,7 +555,7 @@ async function exportAllEmlFiles() {
 
       <section className="attachment-section" aria-labelledby="attachment-heading">
         <div>
-          <h2 id="attachment-heading">Attachments ({attachments.length})</h2>
+          <h2 id="attachment-heading">Global attachments ({attachments.length})</h2>
           <p id="attachment-help">Selected files will be attached to every draft. Each file must be smaller than 3 MB.</p>
         </div>
 
@@ -560,6 +569,7 @@ async function exportAllEmlFiles() {
                   type="button"
                   onClick={() => setAttachments((currentAttachments) => currentAttachments.filter((item) => item !== file))}
                   aria-label={`Remove ${file.name}`}
+                  disabled={isBusy}
                 >
                   Remove
                 </button>
@@ -568,6 +578,20 @@ async function exportAllEmlFiles() {
           </ul>
         )}
       </section>
+
+      {merged.some((email) => email.attachmentPaths.length > 0) && (
+      <section className="attachment-section" aria-labelledby="recipient-attachment-heading">
+        <h2 id="recipient-attachment-heading">CSV attachments for this recipient ({merged[selectedRow]?.attachmentPaths.length || 0})</h2>
+        <p>Paths are relative to the uploaded CSV's folder. These files will be attached only to this recipient's draft. Each file must be smaller than 3 MB.</p>
+        {merged[selectedRow]?.attachmentPaths.length > 0 ? (
+          <ul className="attachment-list">
+            {merged[selectedRow].attachmentPaths.map((attachmentPath, index) => (
+              <li key={`${index}:${attachmentPath}`}><span>{attachmentPath}</span></li>
+            ))}
+          </ul>
+        ) : <p>No CSV attachments for this recipient.</p>}
+      </section>
+      )}
 
           <iframe
             title="Email preview"
@@ -624,8 +648,8 @@ async function exportAllEmlFiles() {
 
       {pendingDraftAction && (
         <ConfirmationModal
-          recipientCount={pendingDraftAction.type === "all" ? merged.length : 1}
-          attachments={attachments}
+          emails={pendingDraftAction.type === "all" ? merged : [merged[pendingDraftAction.index]]}
+          globalAttachmentCount={attachments.length}
           onCancel={() => setPendingDraftAction(null)}
           onConfirm={confirmDraftCreation}
         />
@@ -635,17 +659,17 @@ async function exportAllEmlFiles() {
       {status && <p className="draft-status" role="status">{status}</p>}
 
       <div className="preview-actions">
-        <button onClick={onBack} disabled={isCreatingDrafts}>Back</button>
+        <button onClick={onBack} disabled={isBusy}>Back</button>
 
         <button
           type="button"
           onClick={exportAllEmlFiles}
-          disabled={merged.length === 0 || isCreatingDrafts}
+          disabled={merged.length === 0 || isBusy}
         >
           Export all .eml files
         </button>
 
-        <button onClick={requestAllDrafts} disabled={isCreatingDrafts || !merged.length}>
+        <button onClick={requestAllDrafts} disabled={isBusy || !merged.length}>
           Create all Outlook drafts
         </button>
       </div>

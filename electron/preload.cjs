@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld("eMergeDAuth", {
 });
 
 contextBridge.exposeInMainWorld("eMergeDFiles", {
+  selectCsv: () => ipcRenderer.invoke("files:select-csv"),
+  prepareCsvAttachments: (request) =>
+    ipcRenderer.invoke("files:prepare-csv-attachments", request),
+  clearCsvSource: () => ipcRenderer.invoke("files:clear-csv-source"),
   exportAllEml: (data) =>
     ipcRenderer.invoke("files:export-all-eml", data),
 });

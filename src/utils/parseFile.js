@@ -1,6 +1,6 @@
 // parseCSV func takes a CSV file as input and returns an object containing the headers and data
 // for .csv files, built-in JS functions are used
-function parseCSV(text) {
+export function parseCSV(text) {
     const rows = []
     let currentRow = []
     let currentValue = ''

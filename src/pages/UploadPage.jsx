@@ -13,56 +13,75 @@ function UploadPage({
   setAlertCcBcc,
   selectedFileName,
   setSelectedFileName,
+  setCsvSourceId,
   onClearFile,
 }) {
   const [previewRows, setPreviewRows] = useState(() => csvData.slice(0, 3));
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef(null);
   const previewColumns = Object.keys(previewRows[0] ?? {});
+  const hasDesktopPicker = Boolean(window.eMergeDFiles?.selectCsv);
 
   const { signIn, isAuthenticated } = useDesktopAuth();
+
+  function acceptCsv({ headers, data, name, sourceId = null }) {
+    const isValid = validateCsvHeaders(headers);
+    const { hasCc, hasBcc } = CsvHeaderFields(headers);
+
+    if (!isValid) {
+      throw new Error("CSV must include an 'Email' or 'RecipientEmail' column.");
+    }
+
+    // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
+    const messageCcBcc =
+      (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
+      : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
+      : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
+      : "";
+
+    setCsvData(data);
+    setSelectedFileName(name);
+    setCsvSourceId(sourceId);
+    setPreviewRows(data.slice(0, 3));
+    setCsvHeaderFields({ hasCc, hasBcc });
+    setAlertCcBcc(messageCcBcc);
+  }
+
+  async function loadCsv(selectFile) {
+    setIsUploading(true);
+    setUploadError("");
+    try {
+      const selection = await selectFile();
+      if (selection) acceptCsv(selection);
+    } catch (error) {
+      console.error("Error parsing file:", error);
+      await clearSelectedFile();
+      setUploadError(error.message || "Error parsing file. Please check the format.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    try {
-      const { headers, data } = await parseFile(file);
-      const isValid = validateCsvHeaders(headers);
-      const { hasCc, hasBcc } = CsvHeaderFields(headers);
-
-      if (!isValid) {
-        setCsvData([]);
-        setSelectedFileName("");
-        setPreviewRows([]);
-        setAlertCcBcc("")
-        alert("CSV must include an 'Email' or 'RecipientEmail' column.");
-        return;
-      }
-
-      // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
-      const messageCcBcc =
-        (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
-        : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
-        : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
-        : "";
-
-      setCsvData(data);
-      setSelectedFileName(file.name);
-      setPreviewRows(data.slice(0, 3));
-      setCsvHeaderFields({ hasCc, hasBcc });
-      setAlertCcBcc(messageCcBcc)
-    } catch (error) {
-      console.error("Error parsing file:", error);
-      alert("Error parsing file. Please check the format.");
-    }
+    await loadCsv(async () => ({ ...await parseFile(file), name: file.name }));
   }
 
-  function clearSelectedFile() {
+  async function clearSelectedFile() {
     onClearFile();
     setPreviewRows([]);
+    setUploadError("");
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+    try {
+      await window.eMergeDFiles?.clearCsvSource?.();
+    } catch (error) {
+      console.error("Unable to clear CSV source:", error);
+      setUploadError("Unable to clear the CSV location. Select the CSV again before continuing.");
     }
   }
 
@@ -82,13 +101,23 @@ function UploadPage({
         <span style={{ color: "red" }}>*</span> Draft emails will be created in the Outlook account used for sign-in <span style={{ color: "red" }}>*</span>
       </h3>
 
-      <input
+      {hasDesktopPicker ? (
+        <button
+          type="button"
+          onClick={() => loadCsv(() => window.eMergeDFiles.selectCsv())}
+          disabled={!isAuthenticated || isUploading}
+        >
+          {isUploading ? "Reading CSV…" : "Choose CSV file"}
+        </button>
+      ) : <input
         ref={fileInputRef}
         type="file"
         accept=".csv"
         onChange={handleFileUpload}
-        disabled={!isAuthenticated}
-      />
+        disabled={!isAuthenticated || isUploading}
+      />}
+
+      {uploadError && <p role="alert">{uploadError}</p>}
 
       {!isAuthenticated && (
         <p style={{ color: "gray", marginTop: "8px" }}>
@@ -101,7 +130,7 @@ function UploadPage({
           <p>Selected file: {selectedFileName} ({csvData.length} recipient{csvData.length === 1 ? "" : "s"})
             {alertCcBcc && ` - ${alertCcBcc}`}
           </p>
-          <button type="button" onClick={clearSelectedFile}>Clear file</button>
+          <button type="button" onClick={clearSelectedFile} disabled={isUploading}>Clear file</button>
         </div>
       )}
       
@@ -111,6 +140,7 @@ function UploadPage({
           <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
           <li>Email is a MANDATORY header</li>
           <li>Each row will be used to generate one email</li>
+          <li>Optional Attachments column: list files relative to the CSV folder, separated by semicolons, e.g. attachments/alice.pdf;attachments/course-guide.pdf. Blank cells are allowed.</li>
           <li>XLSX file format is not supported!</li>
         </ul>
       </div>
@@ -158,7 +188,7 @@ function UploadPage({
       )}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-        <button onClick={onNext} disabled={!isAuthenticated || previewRows.length === 0}>
+        <button onClick={onNext} disabled={!isAuthenticated || isUploading || previewRows.length === 0}>
           Next
         </button>
       </div>

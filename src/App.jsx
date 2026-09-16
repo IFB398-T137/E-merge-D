@@ -24,6 +24,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(savedWorkflow?.currentPage || "upload");
   const [csvData, setCsvData] = useState(savedWorkflow?.csvData || []);
   const [selectedFileName, setSelectedFileName] = useState(savedWorkflow?.selectedFileName || "");
+  const [csvSourceId, setCsvSourceId] = useState(savedWorkflow?.csvSourceId || null);
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
@@ -41,6 +42,7 @@ function App() {
         currentPage,
         csvData,
         selectedFileName,
+        csvSourceId,
         body,
         subject,
         emailEdits,
@@ -51,7 +53,7 @@ function App() {
         replyTo,
       }),
     );
-  }, [body, csvData, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
+  }, [body, csvData, csvSourceId, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
   ]);
 
   return (
@@ -60,7 +62,10 @@ function App() {
         <UploadPage
           onNext={() => 
             setCurrentPage("template")}
-          setCsvData={setCsvData}
+          setCsvData={(data) => {
+            setCsvData(data);
+            setEmailEdits({});
+          }}
           csvData={csvData}
           CsvHeaderFields={CsvHeaderFields}
           setCsvHeaderFields={setCsvHeaderFields}
@@ -68,9 +73,11 @@ function App() {
           setAlertCcBcc={setAlertCcBcc}
           selectedFileName={selectedFileName}
           setSelectedFileName={setSelectedFileName}
-          onFile={() => {
+          setCsvSourceId={setCsvSourceId}
+          onClearFile={() => {
             setCsvData([]);
             setSelectedFileName("");
+            setCsvSourceId(null);
             setEmailEdits({});
             setAlertCcBcc("");
             setCsvHeaderFields({ hasCc: false, hasBcc: false });
@@ -106,6 +113,7 @@ function App() {
       {currentPage === "preview" && (
         <PreviewPage 
           csvData={csvData}
+          csvSourceId={csvSourceId}
           body={body}
           subject={subject}
           emailEdits={emailEdits}

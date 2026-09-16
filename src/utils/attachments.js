@@ -121,3 +121,61 @@ export async function fileToGraphAttachment(file) {
 export function prepareGraphAttachments(files) {
   return Promise.all(files.map(fileToGraphAttachment));
 }
+
+export function getRowAttachmentPaths(row) {
+  const header = Object.keys(row || {}).find(
+    (key) => key.trim().toLowerCase() === "attachments",
+  );
+  const value = header ? row[header] : null;
+
+  if (value == null || value === "") return [];
+
+  return String(value).split(";").map((entry) => entry.trim()).filter(Boolean);
+}
+
+// Prepare the entire requested batch before the caller creates any drafts.
+// Row indexes refer to the original CSV, even when only one recipient is selected.
+export async function prepareEmailAttachments({
+  emails,
+  globalFiles = [],
+  csvSourceId,
+  fileApi = globalThis.window?.eMergeDFiles,
+}) {
+  const globalAttachments = await prepareGraphAttachments(globalFiles);
+  const rowsWithAttachments = emails.filter((email) => email.attachmentPaths?.length);
+  let attachmentsByRow = {};
+
+  if (rowsWithAttachments.length > 0) {
+    if (!fileApi?.prepareCsvAttachments) {
+      throw new Error("CSV attachments require the E-merge-D desktop app. Open the app and select the CSV again.");
+    }
+    if (!csvSourceId) {
+      throw new Error("Select the CSV again on the Upload page so its attachment paths can be resolved from the CSV folder.");
+    }
+
+    const result = await fileApi.prepareCsvAttachments({
+      sourceId: csvSourceId,
+      rowIndexes: rowsWithAttachments.map((email) => email.rowIndex),
+    });
+
+    if (result.errors.length > 0) {
+      throw new Error(`CSV attachment validation failed:\n${result.errors.join("\n")}`);
+    }
+
+    attachmentsByRow = result.attachmentsByRow;
+    for (const email of rowsWithAttachments) {
+      if (!Array.isArray(attachmentsByRow[email.rowIndex]) ||
+          attachmentsByRow[email.rowIndex].length !== email.attachmentPaths.length) {
+        throw new Error("The selected CSV no longer matches the preview. Select the CSV again on the Upload page.");
+      }
+    }
+  }
+
+  return emails.map((email) => ({
+    ...email,
+    attachments: [
+      ...globalAttachments,
+      ...(email.attachmentPaths?.length ? attachmentsByRow[email.rowIndex] : []),
+    ],
+  }));
+}

@@ -49,7 +49,24 @@ Microsoft sign-in is intentionally unavailable in a normal browser because authe
 
 ## Attachments
 
-On the preview page, choose **Add files** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
+On the preview page, choose **Add attachments** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
+
+To attach different files to individual recipients, add an optional `Attachments` column to the CSV:
+
+```csv
+RecipientEmail,FirstName,Attachments
+alice@example.com,Alice,attachments/alice-report.pdf;attachments/course-guide.pdf
+bob@example.com,Bob,attachments/bob-report.pdf
+charlie@example.com,Charlie,
+```
+
+Separate multiple paths with `;`. Whitespace around paths and empty entries are ignored, and blank or missing cells are valid. Header matching is case-insensitive. Each recipient receives the global files selected on Preview plus only the attachments from their own CSV row. Preview shows the selected recipient's CSV paths separately from the global files; `.eml` exports use the same combined attachments.
+
+Relative paths start from the **CSV's folder**, regardless of where the portable executable is located. For example, selecting `F:\Semester1\Mailout\students.csv` resolves `attachments/alice-report.pdf` to `F:\Semester1\Mailout\attachments\alice-report.pdf`. Keep the CSV and attachment folders together when moving them to another computer or drive; selecting the CSV from its new location automatically uses the new drive letter. Both `/` and `\` separators work on Windows.
+
+All attachments for the requested recipients are checked and read before any drafts are created. Missing, unreadable, empty, oversized, or blocked files stop the operation with errors identifying the recipient row and attachment path. Recipient row numbers start at 1 for the first data row, excluding the header. Fix the files or CSV and retry; if you edit the CSV, select it again to refresh its data.
+
+The desktop CSV picker retains the actual CSV path and original rows in Electron's main process. The renderer receives an opaque source ID and can request attachments only by row index from that selected CSV. Clearing or replacing the CSV discards the old source. A renderer reload preserves the source during the same app session; if the app restarts with a restored preview, select the CSV again to restore access to its attachments. CSV attachments require the desktop application.
 
 The application always displays a final confirmation before creating a single draft or all drafts. Drafts are saved to Outlook but are not sent.
 

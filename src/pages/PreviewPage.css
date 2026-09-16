@@ -283,6 +283,11 @@
   white-space: nowrap;
 }
 
+.attachment-picker.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .attachment-list {
   margin: 1rem 0 0;
   padding: 0;
@@ -515,9 +520,10 @@
 
 .preview-footer .draft-status {
   margin: 0 0 0.5rem;
-  max-height: 3rem;
+  max-height: 8rem;
   overflow-y: auto;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
   font-size: 0.8rem;
   padding: 0.5rem;
 }
