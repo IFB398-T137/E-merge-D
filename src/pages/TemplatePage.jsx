@@ -24,8 +24,12 @@ function TemplatePage({
       <h1>Create email template</h1>
 
       <p className="template-help">
-        Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
-      </p>
+          Create an email tempate using informatiom from your uploaded csv file, you can either write your email directly in the editor or copy and paste an existing email draft from outlook. <br></br>
+          Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}. Placeholders are replaced with the corresponding information for each recipient when your emails are generated. The place holders are not case sensitive and the names must match the headings of the CSV file.<br></br>
+          You can also customise the subject, cc, bcc and reply to fields. IF your CSV file contains cc or bcc columns the recipient information from those collumns will be used for the generated emails. <br></br>
+          When you have finished creating your template select preview emails to review the personalised emails before they are saved as drafts.
+          
+          </p>
       
       <label className="template-field">
         CC
