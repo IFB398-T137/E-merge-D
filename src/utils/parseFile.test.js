@@ -53,4 +53,18 @@ describe("parseFile", () => {
 
   //add test: handles multiple emails in a single cell separated by commas and trims whitespace from each value
 
+  it("preserves row attachment paths, including quoted commas and Windows separators", async () => {
+    const file = new File([
+      'RecipientEmail,Attachments\r\nalice@example.com,"attachments/alice, report.pdf; attachments\\guide.pdf"\r\nbob@example.com,\r\ncharlie@example.com',
+    ], "students.csv", { type: "text/csv" });
+
+    const { data } = await parseFile(file);
+
+    expect(data).toEqual([
+      { RecipientEmail: "alice@example.com", Attachments: "attachments/alice, report.pdf; attachments\\guide.pdf" },
+      { RecipientEmail: "bob@example.com", Attachments: "" },
+      { RecipientEmail: "charlie@example.com", Attachments: "" },
+    ]);
+  });
+
 });

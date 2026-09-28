@@ -113,7 +113,9 @@ async function exportEmlFiles(folder, emails, subject, attachments) {
       bcc: email.bcc,
       subject,
       htmlBody: email.content,
-      attachments,
+      // Per-email attachments already contain the global and CSV files.
+      // Older callers can still supply a shared attachment array.
+      attachments: email.attachments ?? attachments ?? [],
     });
 
     const recipient = Array.isArray(email.to)

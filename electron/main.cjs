@@ -9,12 +9,29 @@ const { startServer } = require("./server.cjs");
 const AuthProvider = require("./AuthProvider.cjs");
 const { msalConfig, GRAPH_SCOPES } = require("./authConfig.cjs");
 const { exportEmlFiles } = require("./emlExport.cjs");
+const { createCsvAttachmentStore } = require("./csvAttachments.cjs");
 
 const APP_PORT = 42813;
 
 let mainWindow;
 let server;
 const authProvider = new AuthProvider(msalConfig);
+const csvAttachmentStore = Promise.all([
+  import("../src/utils/parseFile.js"),
+  import("../src/utils/attachments.js"),
+]).then(([{ parseCSV }, { getRowAttachmentPaths, getAttachmentValidationError }]) =>
+  createCsvAttachmentStore({ parseCSV, getRowAttachmentPaths, getAttachmentValidationError }),
+);
+
+function assertMainWindowSender(event) {
+  const trustedOrigin = `http://127.0.0.1:${APP_PORT}`;
+  if (!mainWindow || mainWindow.isDestroyed() ||
+      event.sender !== mainWindow.webContents ||
+      event.senderFrame !== mainWindow.webContents.mainFrame ||
+      !event.senderFrame.url.startsWith(`${trustedOrigin}/`)) {
+    throw new Error("File access is only available to the application window.");
+  }
+}
 
 function registerAuthHandlers() {
   ipcMain.handle("auth:sign-in", async () => {
@@ -39,6 +56,29 @@ function registerAuthHandlers() {
 }
 
 function registerFileHandlers() {
+  ipcMain.handle("files:select-csv", async (event) => {
+    assertMainWindowSender(event);
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose recipient CSV",
+      filters: [{ name: "CSV files", extensions: ["csv"] }],
+      properties: ["openFile"],
+    });
+
+    if (result.canceled || !result.filePaths[0]) return null;
+    assertMainWindowSender(event);
+    return (await csvAttachmentStore).selectCsv(event.sender.id, result.filePaths[0]);
+  });
+
+  ipcMain.handle("files:prepare-csv-attachments", async (event, request) => {
+    assertMainWindowSender(event);
+    return (await csvAttachmentStore).prepareCsvAttachments(event.sender.id, request);
+  });
+
+  ipcMain.handle("files:clear-csv-source", async (event) => {
+    assertMainWindowSender(event);
+    (await csvAttachmentStore).clearCsvSource(event.sender.id);
+  });
+
   ipcMain.handle("files:export-all-eml", async (_event, data) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: "Choose folder for exported emails",
@@ -83,6 +123,11 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
+  });
+
+  const senderId = mainWindow.webContents.id;
+  mainWindow.webContents.once("destroyed", () => {
+    void csvAttachmentStore.then((store) => store.clearCsvSource(senderId));
   });
 
   server = startServer();
