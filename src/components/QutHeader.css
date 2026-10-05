@@ -1,0 +1,48 @@
+.qut-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 32px;
+  border-bottom: 1px solid #dbe4ed;
+  background: #fff;
+  color: #12467b;
+  text-align: left;
+}
+
+.qut-header__logo {
+  display: block;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.qut-header__divider {
+  width: 1px;
+  height: 28px;
+  flex-shrink: 0;
+  background: #dbe4ed;
+}
+
+.qut-header__app-name {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+
+@media (max-width: 600px) {
+  .qut-header {
+    gap: 16px;
+    padding: 10px 20px;
+  }
+
+  .qut-header__logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .qut-header__app-name {
+    font-size: 20px;
+  }
+}
