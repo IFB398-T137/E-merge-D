@@ -89,8 +89,8 @@ Once the .exe is built in release/ the portable installer is ready
 
 ## App icon
 
-The app uses the supplied magpie head artwork on a solid `#8FAFCA` background.
-`public/app-icon.svg` embeds the original PNG on a `#8FAFCA` canvas;
+The app uses the supplied magpie head artwork with a transparent background.
+`public/app-icon.svg` embeds the original PNG on a transparent canvas;
 `public/app-icon.png` and the multi-size `public/app-icon.ico` are its desktop exports.
 See `public/app-icon-source.md` for the artwork source.
 The icon is used by the Electron window, macOS Dock, packaged apps and browser favicon.
