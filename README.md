@@ -85,3 +85,13 @@ npm run build
 npx electron-builder --win portable --x64 -c.directories.output=release.
 
 Once the .exe is built in release/ the portable installer is ready
+
+
+## App icon
+
+The app uses the supplied magpie artwork on a solid white background.
+`public/app-icon.svg` contains the original artwork on a white canvas;
+`public/app-icon.png` and the multi-size `public/app-icon.ico` are its desktop exports.
+The icon is used by the Electron window, macOS Dock, packaged apps and browser favicon.
+Restart `npm run desktop` to see the updated window icon. Rebuild packaged apps
+with Electron Builder to update their executable or launcher icon.

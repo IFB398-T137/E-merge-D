@@ -34,5 +34,11 @@
     "globals": "^17.5.0",
     "vite": "^8.0.10",
     "vitest": "^4.1.11"
+  },
+  "build": {
+    "icon": "public/app-icon.png",
+    "win": {
+      "icon": "public/app-icon.ico"
+    }
   }
 }

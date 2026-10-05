@@ -110,10 +110,21 @@ function registerFileHandlers() {
 }
 
 function createWindow() {
+  const iconPath = path.join(
+    __dirname,
+    "../dist",
+    process.platform === "win32" ? "app-icon.ico" : "app-icon.png",
+  );
+
+  if (process.platform === "darwin") {
+    app.dock.setIcon(iconPath);
+  }
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
