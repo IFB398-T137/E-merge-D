@@ -1,11 +1,9 @@
-# Australian magpie head icon
+# Magpie head app icon
 
-An original SVG drawn for this app-icon trial. It uses broad, flat shapes to
-remain legible at 16–32 px, with a solid white background.
+Source: the supplied `magpiehead icon.png` (1254 × 1254 pixels).
 
-The design uses a black head, white nape, pale black-tipped bill and chestnut eye.
-Species identification reference: [BirdLife Australia — Australian Magpie](https://birdlife.org.au/bird-profiles/australian-magpie/).
+`app-icon.svg` embeds the original PNG unchanged on a solid white canvas,
+preserving the artwork, proportions and position. The desktop PNG export is
+1024 × 1024. The Windows ICO contains 16, 24, 32, 48, 64, 128 and 256 px sizes.
 
-This is a custom illustration, rather than a downloaded stock icon or photograph.
-No third-party image is embedded. `app-icon.png` and `app-icon.ico` are exports
-of `app-icon.svg`; the Windows ICO contains 16, 24, 32, 48, 64, 128 and 256 px sizes.
+The icon is used by the Electron window, macOS Dock, packaged apps and favicon.

@@ -89,10 +89,10 @@ Once the .exe is built in release/ the portable installer is ready
 
 ## App icon
 
-The app uses a simple Australian magpie head on a solid white background.
-`public/app-icon.svg` is the editable vector source, with broad shapes for small icons;
+The app uses the supplied magpie head artwork on a solid white background.
+`public/app-icon.svg` embeds the original PNG on a white canvas;
 `public/app-icon.png` and the multi-size `public/app-icon.ico` are its desktop exports.
-See `public/app-icon-source.md` for the design reference.
+See `public/app-icon-source.md` for the artwork source.
 The icon is used by the Electron window, macOS Dock, packaged apps and browser favicon.
 Restart `npm run desktop` to see the updated window icon. Rebuild packaged apps
 with Electron Builder to update their executable or launcher icon.
