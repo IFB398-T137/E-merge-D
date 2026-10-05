@@ -1,5 +1,6 @@
 {
-  "name": "e-merge-d",
+  "name": "maggiemail",
+  "productName": "MaggieMail",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -36,6 +37,7 @@
     "vitest": "^4.1.11"
   },
   "build": {
+    "appId": "com.electron.e-merge-d",
     "icon": "public/app-icon.png",
     "win": {
       "icon": "public/app-icon.ico"

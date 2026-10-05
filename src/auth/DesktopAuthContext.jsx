@@ -5,7 +5,7 @@ const DesktopAuthContext = createContext(null);
 function getDesktopAuthBridge() {
   if (!window.eMergeDAuth) {
     throw new Error(
-      "Microsoft desktop authentication is only available when E-merge-D is running inside Electron.",
+      "Microsoft desktop authentication is only available when MaggieMail is running inside Electron.",
     );
   }
 

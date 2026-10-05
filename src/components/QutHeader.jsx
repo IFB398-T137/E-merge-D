@@ -12,7 +12,7 @@ function QutHeader() {
         height="52"
       />
       <span className="qut-header__divider" aria-hidden="true" />
-      <span className="qut-header__app-name">E-merge-D</span>
+      <span className="qut-header__app-name">MaggieMail</span>
     </header>
   );
 }

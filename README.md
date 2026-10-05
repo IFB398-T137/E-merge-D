@@ -1,6 +1,8 @@
-# E-merge-D
+# MaggieMail
 
-E-merge-D is an Electron desktop email merge application for generating personalised Outlook drafts from CSV data. Users upload recipient data, create or paste an HTML/plain-text template, preview merged results, and save personalised messages directly to their Outlook Drafts folder through Microsoft Graph.
+MaggieMail is an Electron desktop email merge application for generating personalised Outlook drafts from CSV data. Users upload recipient data, create or paste an HTML/plain-text template, preview merged results, and save personalised messages directly to their Outlook Drafts folder through Microsoft Graph.
+
+Desktop builds and installers use the name **MaggieMail**. The existing app identifier and desktop data location are retained so the rebrand keeps using the same local data.
 
 ## Tech stack
 

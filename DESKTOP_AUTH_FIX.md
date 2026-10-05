@@ -1,4 +1,4 @@
-# E-merge-D Electron authentication fix
+# MaggieMail Electron authentication fix
 
 ## What changed
 
@@ -14,7 +14,7 @@ For application/client ID:
 
 `73add89f-a195-4a8a-9397-783d3c37489d`
 
-1. Go to **App registrations -> E-merge-D -> Authentication**.
+1. In **App registrations**, select the registration for the client ID above and open **Authentication**.
 2. Under **Mobile and desktop applications**, add this redirect URI:
 
    `http://localhost`
@@ -48,7 +48,7 @@ Expected flow:
 2. Select **Sign in with Microsoft**.
 3. Your default browser opens the Microsoft sign-in page.
 4. Personal Outlook/Microsoft accounts and permitted work/school accounts can authenticate through the `common` authority.
-5. The browser shows a success page and you return to E-merge-D.
+5. The browser shows a success page and you return to MaggieMail.
 6. Upload a CSV and create an Outlook draft to verify `Mail.ReadWrite`.
 
 ## Packaging note

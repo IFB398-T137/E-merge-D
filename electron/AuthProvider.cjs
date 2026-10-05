@@ -39,9 +39,9 @@ class AuthProvider {
         await shell.openExternal(url);
       },
       successTemplate:
-        "<h1>Signed in successfully</h1><p>You can close this browser window and return to E-merge-D.</p>",
+        "<h1>Signed in successfully</h1><p>You can close this browser window and return to MaggieMail.</p>",
       errorTemplate:
-        "<h1>Sign-in failed</h1><p>Return to E-merge-D for details.</p>",
+        "<h1>Sign-in failed</h1><p>Return to MaggieMail for details.</p>",
     });
 
     this.account = response.account || null;
