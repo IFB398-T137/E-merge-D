@@ -142,7 +142,7 @@ function PreviewPage({
   csvData,
   csvSourceId,
   body,
-  subject = "MaggieMail Test Email",
+  subject = "MailMagpie Test Email",
   cc,
   bcc,
   replyTo,

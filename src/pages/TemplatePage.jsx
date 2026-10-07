@@ -6,7 +6,7 @@ function TemplatePage({
   onBack,
   onNext,
   initialContent = "",
-  initialSubject = "MaggieMail Test Email",
+  initialSubject = "MailMagpie Test Email",
   initialCc = "",
   initialBcc = "",
   csvHasCc,

@@ -227,7 +227,7 @@ describe("CSV attachment preflight failures", () => {
     const fetchMock = mockGraphFetch();
 
     await expect(prepareAndCreateDrafts({ emails, csvSourceId: "csv-source", fileApi: null }))
-      .rejects.toThrow("CSV attachments require the MaggieMail desktop app");
+      .rejects.toThrow("CSV attachments require the MailMagpie desktop app");
 
     expect(fetchMock).not.toHaveBeenCalled();
   });

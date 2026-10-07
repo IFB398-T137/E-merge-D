@@ -1,4 +1,4 @@
-# MaggieMail Electron authentication fix
+# MailMagpie Electron authentication fix
 
 ## What changed
 
@@ -48,7 +48,7 @@ Expected flow:
 2. Select **Sign in with Microsoft**.
 3. Your default browser opens the Microsoft sign-in page.
 4. Personal Outlook/Microsoft accounts and permitted work/school accounts can authenticate through the `common` authority.
-5. The browser shows a success page and you return to MaggieMail.
+5. The browser shows a success page and you return to MailMagpie.
 6. Upload a CSV and create an Outlook draft to verify `Mail.ReadWrite`.
 
 ## Packaging note
