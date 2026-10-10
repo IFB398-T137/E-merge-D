@@ -424,7 +424,7 @@ function PreviewPage({
         setBulkDraftProgress({ created, total, stopping: signal.aborted });
       }
 
-      setStatus(`Created all ${total} drafts in Outlook.`);
+      setStatus(`Created ${total === 1 ? "1 draft" : `all ${total} drafts`} in Outlook.`);
     } catch (error) {
       if (signal.aborted && error === signal.reason) {
         setStatus(`Draft creation interrupted. ${created} of ${total} drafts created in Outlook; ${total - created} remaining. Existing drafts have been kept. Starting again begins with the first recipient.`);
