@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import UploadPage from "./pages/UploadPage";
 import TemplatePage from "./pages/TemplatePage";
 import PreviewPage from "./pages/PreviewPage";
+import QutHeader from "./components/QutHeader";
 
 const savedWorkflowKey = "emerged.workflow";
 
@@ -58,6 +59,7 @@ function App() {
 
   return (
     <div>
+      <QutHeader />
       {currentPage === "upload" && (
         <UploadPage
           onNext={() => 
