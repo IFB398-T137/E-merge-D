@@ -1,4 +1,5 @@
 const fs = require("fs/promises");
+const { constants } = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
@@ -37,6 +38,7 @@ function describeReadError(error) {
 
 function createCsvAttachmentStore({
   parseCSV,
+  getCsvValidationError,
   getRowAttachmentPaths,
   getAttachmentValidationError,
   fileSystem = fs,
@@ -44,6 +46,54 @@ function createCsvAttachmentStore({
   createSourceId = randomUUID,
 }) {
   const sources = new Map();
+
+  async function inspectAttachment(csvPath, originalPath) {
+    let resolvedPath;
+    try {
+      resolvedPath = resolveAttachmentPath(csvPath, originalPath, pathModule);
+    } catch (error) {
+      return { kind: "unresolved", message: error.message };
+    }
+
+    try {
+      const stats = await fileSystem.stat(resolvedPath);
+      if (!stats.isFile()) {
+        return { kind: "unresolved", message: "Path does not refer to a regular file." };
+      }
+      const name = pathModule.basename(resolvedPath);
+      const message = getAttachmentValidationError({ name, size: stats.size });
+      if (message) return { kind: "invalid", message };
+      return { resolvedPath, name };
+    } catch (error) {
+      return { kind: "unresolved", message: describeReadError(error) };
+    }
+  }
+
+  async function checkAttachmentPaths(csvPath, data) {
+    const issues = [];
+    const checkedPaths = new Map();
+    for (const [rowIndex, row] of data.entries()) {
+      for (const originalPath of getRowAttachmentPaths(row)) {
+        if (!checkedPaths.has(originalPath)) {
+          let result = await inspectAttachment(csvPath, originalPath);
+          if (!result.message) {
+            try {
+              // Check readability without loading each attachment into memory.
+              await fileSystem.access(result.resolvedPath, constants.R_OK);
+            } catch (error) {
+              result = { kind: "unresolved", message: describeReadError(error) };
+            }
+          }
+          checkedPaths.set(originalPath, result);
+        }
+        const result = checkedPaths.get(originalPath);
+        if (result.message) {
+          issues.push({ rowIndex, path: originalPath, kind: result.kind, message: result.message });
+        }
+      }
+    }
+    return issues;
+  }
 
   async function selectCsv(senderId, csvPath) {
     if (!pathModule.isAbsolute(csvPath)) {
@@ -54,6 +104,9 @@ function createCsvAttachmentStore({
     }
 
     const { headers, data } = parseCSV(await fileSystem.readFile(csvPath, "utf8"));
+    const validationError = getCsvValidationError({ headers, data });
+    if (validationError) throw new Error(validationError);
+    const attachmentIssues = await checkAttachmentPaths(csvPath, data);
     const sourceId = createSourceId();
     sources.set(senderId, {
       sourceId,
@@ -62,7 +115,7 @@ function createCsvAttachmentStore({
       rows: data.map((row) => ({ ...row })),
     });
 
-    return { sourceId, name: pathModule.basename(csvPath), headers, data };
+    return { sourceId, name: pathModule.basename(csvPath), headers, data, attachmentIssues, attachmentsChecked: true };
   }
 
   function clearCsvSource(senderId) {
@@ -94,28 +147,14 @@ function createCsvAttachmentStore({
 
       for (const originalPath of getRowAttachmentPaths(row)) {
         const prefix = `${recipientDescription(row, rowIndex)}, attachment "${originalPath}": `;
-        let resolvedPath;
-        try {
-          resolvedPath = resolveAttachmentPath(source.csvPath, originalPath, pathModule);
-        } catch (error) {
-          errors.push(prefix + error.message);
+        const inspection = await inspectAttachment(source.csvPath, originalPath);
+        if (inspection.message) {
+          errors.push(prefix + inspection.message);
           continue;
         }
+        const { resolvedPath, name } = inspection;
 
         try {
-          const stats = await fileSystem.stat(resolvedPath);
-          if (!stats.isFile()) {
-            errors.push(prefix + "Path does not refer to a regular file.");
-            continue;
-          }
-
-          const name = pathModule.basename(resolvedPath);
-          const validationError = getAttachmentValidationError({ name, size: stats.size });
-          if (validationError) {
-            errors.push(prefix + validationError);
-            continue;
-          }
-
           const content = await fileSystem.readFile(resolvedPath);
           // Recheck the bytes in case the file changed after stat().
           const contentError = getAttachmentValidationError({ name, size: content.length });

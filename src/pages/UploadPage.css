@@ -1,3 +1,70 @@
+.upload-page {
+  padding: 1rem 1.5rem;
+}
+
+.upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.upload-message {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  overflow-wrap: anywhere;
+}
+
+.upload-warnings {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #d97706;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.upload-warnings p {
+  margin: 0 0 0.5rem;
+  color: inherit;
+}
+
+.upload-warning-heading {
+  font-weight: 700;
+}
+
+.upload-warning-heading span {
+  font-size: 1.25em;
+}
+
+.upload-warning + .upload-warning {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d97706;
+}
+
+.upload-warning summary {
+  cursor: pointer;
+}
+
+.upload-warning ul {
+  max-height: 12rem;
+  overflow-y: auto;
+  padding-left: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .upload-message {
+    color: #f87171;
+  }
+
+  .upload-warnings {
+    background: #302313;
+    color: #fde68a;
+  }
+}
+
 .upload-preview {
   margin-top: 24px;
   overflow: hidden;

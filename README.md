@@ -53,6 +53,8 @@ Microsoft sign-in is intentionally unavailable in a normal browser because authe
 
 ## Attachments
 
+CSV uploads report invalid files in red, including missing email headers, empty files, duplicate or blank headers, and malformed rows. Amber hazard warnings flag duplicate recipient email addresses and attachment problems, with expandable details identifying the affected recipient rows. Warnings allow you to continue to the template and preview; repeated addresses remain separate drafts. Attachment problems must be fixed before creating drafts or exporting emails. The desktop app checks paths when the CSV is selected and checks the files again before creating drafts or exporting.
+
 On the preview page, choose **Add attachments** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
 
 To attach different files to individual recipients, add an optional `Attachments` column to the CSV:

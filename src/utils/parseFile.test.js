@@ -1,15 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseFile } from "./parseFile";
+import { parseCSV, parseFile } from "./parseFile";
 
 describe("parseFile", () => {
   it("checks for unsupported file types", async () => {
     const file = new File([""], "test.txt", { type: "text/plain" });
 
-    try {
-      await parseFile(file);
-    } catch (error) {
-      expect(error.message).toBe("Unsupported file type. Please upload a CSV file.");
-    }  
+    await expect(parseFile(file)).rejects.toThrow("Unsupported file type. Please upload a CSV file.");
   });
 
   it("extracts headers from the first line of a CSV file", async () => {
@@ -51,7 +47,19 @@ describe("parseFile", () => {
     expect(result.data).toEqual([{ FirstName: "Pat", Team: "T137" }]);
   }); 
 
-  //add test: handles multiple emails in a single cell separated by commas and trims whitespace from each value
+  it("rejects an unclosed quoted cell with a readable reason", () => {
+    expect(() => parseCSV('Email,Name\na@example.com,"Alice')).toThrow("unclosed quoted value");
+  });
+
+  it("identifies an extra unquoted comma instead of silently dropping values", () => {
+    expect(() => parseCSV("Email,Name\na@example.com,Alice\nb@example.com,Bob,Smith"))
+      .toThrow("Recipient row 2 has 3 values but the header has 2 columns");
+  });
+
+  it("accepts quoted commas, escaped quotes and multiline cells", () => {
+    expect(parseCSV('Email,Notes\r\n"a@example.com, b@example.com","Say ""hello""\nnext line"\r\n').data)
+      .toEqual([{ Email: "a@example.com, b@example.com", Notes: 'Say "hello"\nnext line' }]);
+  });
 
   it("preserves row attachment paths, including quoted commas and Windows separators", async () => {
     const file = new File([
