@@ -120,7 +120,7 @@ function UploadPage({
       {uploadError && <p role="alert">{uploadError}</p>}
 
       {!isAuthenticated && (
-        <p style={{ color: "gray", marginTop: "8px" }}>
+        <p style={{ color: "red", marginTop: "8px" }}>
           Please read instructions below before uploading a file.
         </p>
       )}

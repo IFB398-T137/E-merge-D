@@ -41,6 +41,8 @@ npm run desktop
 
 This builds the Vite renderer and starts Electron.
 
+Hold **Ctrl** and scroll up or down to zoom the application in or out (50%–300%). Press **Ctrl+0** to reset to 100%.
+
 ## Run renderer only
 
 ```bash
@@ -82,11 +84,14 @@ npm test
 
 Run:
 
+```bash
 npm install
-npm run build
-npx electron-builder --win portable --x64 -c.directories.output=release.
+npm run build:win
+```
 
-Once the .exe is built in release/ the portable installer is ready
+The portable executable is created in `release./` as `MailMagpie <version>.exe`.
+This command rebuilds the app and embeds `public/app-icon.ico` in the Windows
+executables, including the portable `.exe` shown in File Explorer.
 
 
 ## App icon

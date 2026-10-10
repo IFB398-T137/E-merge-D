@@ -140,6 +140,14 @@ function createWindow() {
     },
   });
 
+  const { webContents } = mainWindow;
+  // Electron reports Ctrl+wheel requests but leaves applying page zoom to the app.
+  webContents.on("zoom-changed", (_event, direction) => {
+    const nextLevel = webContents.getZoomLevel() + (direction === "in" ? 0.5 : -0.5);
+    const zoomFactor = Math.max(0.5, Math.min(3, 1.2 ** nextLevel));
+    webContents.setZoomFactor(zoomFactor);
+  });
+
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
