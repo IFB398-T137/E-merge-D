@@ -3,7 +3,7 @@ import "./PreviewPage.css";
 import { mergeContent } from "../utils/mergingFunc";
 import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
-import { createOutlookDraft } from "../utils/outlookDrafts";
+import { createOutlookDraftWithRefresh } from "../utils/outlookDrafts";
 import { validateRow } from "../utils/validateCsv";
 import { processRecipientArrays } from "../utils/processRecipients.js";
 
@@ -42,23 +42,6 @@ function summarizeGraphToken(accessToken) {
     : "unknown";
 
   return `Token audience: ${claims.aud || "unknown"}; scopes: ${claims.scp || "none"}; tenant: ${claims.tid || "unknown"}; expires: ${expiresAt}.`;
-}
-
-async function verifyGraphProfileAccess(accessToken) {
-  const response = await fetch("https://graph.microsoft.com/v1.0/me", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error = new Error(
-      `Microsoft Graph rejected the access token before draft creation: ${response.status}${errorText ? ` - ${errorText}` : ""}`,
-    );
-    error.status = response.status;
-    throw error;
-  }
 }
 
 function EmailEditorModal({ 
@@ -138,6 +121,41 @@ function ConfirmationModal({ emails, globalAttachmentCount, onCancel, onConfirm 
   );
 }
 
+function InterruptDraftsModal({ created, total, onContinue, onInterrupt }) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="confirmation-modal interrupt-confirmation"
+      aria-labelledby="interrupt-title"
+      aria-describedby="interrupt-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        onContinue();
+      }}
+    >
+      <h2 id="interrupt-title">Interrupt draft creation?</h2>
+      <p>{created} of {total} drafts have been created in Outlook.</p>
+      <div id="interrupt-description">
+        <p>Confirming will stop creating the remaining drafts. A draft already being saved may still finish.</p>
+        <p>Existing drafts will stay in your Outlook Drafts folder. No emails will be sent or deleted.</p>
+        <p>Creation continues until you confirm. Starting again begins with the first recipient and may create duplicate drafts.</p>
+      </div>
+      <div className="confirmation-actions">
+        <button type="button" onClick={onContinue} autoFocus>Keep creating</button>
+        <button type="button" className="interrupt-drafts" onClick={onInterrupt}>Interrupt creation</button>
+      </div>
+    </dialog>
+  );
+}
+
 function PreviewPage({
   csvData,
   csvSourceId,
@@ -164,13 +182,18 @@ function PreviewPage({
   const [isEditing, setIsEditing] = useState(false);
   const [pendingDraftAction, setPendingDraftAction] = useState(null);
   const [isCreatingDrafts, setIsCreatingDrafts] = useState(false);
+  const [bulkDraftProgress, setBulkDraftProgress] = useState(null);
+  const [showInterruptConfirmation, setShowInterruptConfirmation] = useState(false);
+  const bulkDraftRunRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const isBusy = isCreatingDrafts || isExporting || Boolean(pendingDraftAction);
   const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
 
+  useEffect(() => () => bulkDraftRunRef.current?.abort(), []);
+
   useEffect(() => {
     function handleFind(event) {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f" && !isEditing && !pendingDraftAction) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f" && !isEditing && !pendingDraftAction && !showInterruptConfirmation) {
         event.preventDefault();
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
@@ -178,7 +201,7 @@ function PreviewPage({
     }
     window.addEventListener("keydown", handleFind);
     return () => window.removeEventListener("keydown", handleFind);
-  }, [isEditing, pendingDraftAction]);
+  }, [isEditing, pendingDraftAction, showInterruptConfirmation]);
 
 
   // CC not working - check object types, csv saved in array, manual entry cc is cleaned up and then save in an array, if hasCc then no action but if !hasCc, use manualCcs
@@ -259,10 +282,11 @@ function PreviewPage({
     email,
     accessToken,
     draftSubject,
+    signal,
   ) {
-    try {
-      await verifyGraphProfileAccess(accessToken);
-      await createOutlookDraft(accessToken, {
+    return createOutlookDraftWithRefresh(
+      accessToken,
+      {
         to: email.to,
         cc: email.cc,
         bcc: email.bcc,
@@ -270,30 +294,9 @@ function PreviewPage({
         subject: draftSubject,
         htmlBody: email.content,
         attachments: email.attachments,
-      });
-
-      return accessToken;
-    } catch (error) {
-      if (error.status !== 401) throw error;
-
-      const refreshedToken = await getAccessToken({
-        forceRefresh: true,
-        allowInteractive: false,
-      });
-
-      await verifyGraphProfileAccess(refreshedToken);
-      await createOutlookDraft(refreshedToken, {
-        to: email.to,
-        cc: email.cc,
-        bcc: email.bcc,
-        replyTo: email.replyTo,
-        subject: draftSubject,
-        htmlBody: email.content,
-        attachments: email.attachments,
-      });
-
-      return refreshedToken;
-    }
+      },
+      { getAccessToken, signal },
+    );
   }
 
   async function ensureSignedIn() {
@@ -377,10 +380,17 @@ function PreviewPage({
   }
 
   async function sendAllDrafts() {
+    if (bulkDraftRunRef.current) return;
+    const controller = new AbortController();
+    bulkDraftRunRef.current = controller;
+    const { signal } = controller;
+    const total = merged.length;
+    let created = 0;
     let accessToken = "";
 
     try {
       setIsCreatingDrafts(true);
+      setBulkDraftProgress({ created, total, stopping: false });
       const missingRecipientCount = merged.filter((email) => !email.to).length;
 
       if (missingRecipientCount > 0) {
@@ -396,25 +406,47 @@ function PreviewPage({
         globalFiles: attachments,
         csvSourceId,
       });
+      signal.throwIfAborted();
       await ensureSignedIn();
+      signal.throwIfAborted();
       accessToken = await getAccessToken();
 
-      for (const [index, email] of preparedEmails.entries()) {
-        setStatus(`Creating draft ${index + 1} of ${preparedEmails.length}...`);
+      for (const email of preparedEmails) {
+        signal.throwIfAborted();
+        setStatus(`${created} of ${total} drafts created in Outlook. Creating the next draft...`);
         accessToken = await createDraftWithFreshToken(
           email,
           accessToken,
           subject,
+          signal,
         );
+        created += 1;
+        setBulkDraftProgress({ created, total, stopping: signal.aborted });
       }
 
-      setStatus(`Created ${merged.length} drafts.`);
+      setStatus(`Created ${total === 1 ? "1 draft" : `all ${total} drafts`} in Outlook.`);
     } catch (error) {
-      console.error(error);
-      setStatus(`${error.message}${accessToken ? ` ${summarizeGraphToken(accessToken)}` : ""}`);
+      if (signal.aborted && error === signal.reason) {
+        setStatus(`Draft creation interrupted. ${created} of ${total} drafts created in Outlook; ${total - created} remaining. Existing drafts have been kept. Starting again begins with the first recipient.`);
+      } else {
+        console.error(error);
+        setStatus(`Draft creation stopped. ${created} of ${total} drafts confirmed in Outlook. ${error.message}${accessToken ? ` ${summarizeGraphToken(accessToken)}` : ""}`);
+      }
     } finally {
+      bulkDraftRunRef.current = null;
+      setBulkDraftProgress(null);
+      setShowInterruptConfirmation(false);
       setIsCreatingDrafts(false);
     }
+  }
+
+  function interruptDraftCreation() {
+    const controller = bulkDraftRunRef.current;
+    if (!controller || controller.signal.aborted) return;
+    controller.abort();
+    setShowInterruptConfirmation(false);
+    setBulkDraftProgress((progress) => ({ ...progress, stopping: true }));
+    setStatus(`Interrupting draft creation. ${bulkDraftProgress.created} of ${bulkDraftProgress.total} drafts created in Outlook. Waiting for the current operation to finish...`);
   }
 
   function handleAttachmentSelection(event) {
@@ -655,8 +687,31 @@ function PreviewPage({
         />
       )}
 
+      {showInterruptConfirmation && bulkDraftProgress && (
+        <InterruptDraftsModal
+          created={bulkDraftProgress.created}
+          total={bulkDraftProgress.total}
+          onContinue={() => setShowInterruptConfirmation(false)}
+          onInterrupt={interruptDraftCreation}
+        />
+      )}
+
       <footer className="preview-footer">
       {status && <p className="draft-status" role="status">{status}</p>}
+
+      {bulkDraftProgress && (
+        <div className="draft-interrupt-controls">
+          <button
+            type="button"
+            className="interrupt-drafts"
+            aria-haspopup="dialog"
+            disabled={bulkDraftProgress.stopping}
+            onClick={() => setShowInterruptConfirmation(true)}
+          >
+            {bulkDraftProgress.stopping ? "Interrupting…" : "Interrupt draft creation"}
+          </button>
+        </div>
+      )}
 
       <div className="preview-actions">
         <button onClick={onBack} disabled={isBusy}>Back</button>

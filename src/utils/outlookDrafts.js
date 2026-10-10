@@ -1,5 +1,48 @@
 import { parseEmailCell } from "./processRecipients.js";
 
+async function verifyGraphProfileAccess(accessToken) {
+  const response = await fetch("https://graph.microsoft.com/v1.0/me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    const error = new Error(
+      `Microsoft Graph rejected the access token before draft creation: ${response.status}${errorText ? ` - ${errorText}` : ""}`,
+    );
+    error.status = response.status;
+    throw error;
+  }
+}
+
+export async function createOutlookDraftWithRefresh(
+  accessToken,
+  message,
+  { getAccessToken, signal },
+) {
+  async function createWithToken(token) {
+    signal?.throwIfAborted();
+    await verifyGraphProfileAccess(token);
+    signal?.throwIfAborted();
+    // Let a submitted POST finish so interruption can count confirmed drafts.
+    // Aborting its response cannot undo a draft already saved by Outlook.
+    await createOutlookDraft(token, message);
+    return token;
+  }
+
+  try {
+    return await createWithToken(accessToken);
+  } catch (error) {
+    if (error.status !== 401) throw error;
+    signal?.throwIfAborted();
+    const refreshedToken = await getAccessToken({
+      forceRefresh: true,
+      allowInteractive: false,
+    });
+    return createWithToken(refreshedToken);
+  }
+}
+
 export async function createOutlookDraft(
   accessToken,
   {

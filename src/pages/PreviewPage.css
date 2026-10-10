@@ -226,8 +226,56 @@
   margin-top: 0.75rem;
 }
 
-.confirmation-modal #confirmation-title {
+.confirmation-modal #confirmation-title,
+.interrupt-confirmation h2 {
   color: #111827;
+}
+
+.interrupt-confirmation {
+  border: 0;
+  box-sizing: border-box;
+  max-width: calc(100vw - 3rem);
+  max-height: calc(100dvh - 3rem);
+  overflow-y: auto;
+}
+
+.interrupt-confirmation::backdrop {
+  background: rgba(17, 24, 39, 0.55);
+}
+
+#interrupt-description {
+  margin-top: 0.75rem;
+}
+
+.interrupt-confirmation .confirmation-actions {
+  flex-wrap: wrap;
+}
+
+.interrupt-confirmation button,
+.draft-interrupt-controls button {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: #fff;
+  color: #111827;
+}
+
+.preview-page .interrupt-drafts {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
+.preview-page .interrupt-drafts:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.draft-interrupt-controls {
+  margin-bottom: 0.75rem;
+  text-align: left;
 }
 
 .confirmation-actions {
