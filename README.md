@@ -76,6 +76,8 @@ The desktop CSV picker retains the actual CSV path and original rows in Electron
 
 The application always displays a final confirmation before creating a single draft or all drafts. Drafts are saved to Outlook but are not sent.
 
+While creating all drafts, choose **Interrupt draft creation** below the progress message, then confirm with **Interrupt creation**. Draft creation continues until you confirm. Once confirmed, no further draft requests start; a draft already being saved can finish. The final status shows how many drafts were created and how many remain. Existing drafts stay in Outlook, and no email is sent or deleted. Choose **Keep creating** or press Escape to dismiss the interruption popup and continue. Starting again begins with the first recipient and may create duplicates.
+
 ## Test
 
 ```bash
