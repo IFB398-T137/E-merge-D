@@ -26,6 +26,7 @@ function App() {
   const [csvData, setCsvData] = useState(savedWorkflow?.csvData || []);
   const [selectedFileName, setSelectedFileName] = useState(savedWorkflow?.selectedFileName || "");
   const [csvSourceId, setCsvSourceId] = useState(savedWorkflow?.csvSourceId || null);
+  const [csvWarnings, setCsvWarnings] = useState(savedWorkflow?.csvWarnings || []);
   const [body, setBody] = useState(savedWorkflow?.body || "");
   const [subject, setSubject] = useState(savedWorkflow?.subject || "MailMagpie Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
@@ -44,6 +45,7 @@ function App() {
         csvData,
         selectedFileName,
         csvSourceId,
+        csvWarnings,
         body,
         subject,
         emailEdits,
@@ -54,11 +56,11 @@ function App() {
         replyTo,
       }),
     );
-  }, [body, csvData, csvSourceId, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
+  }, [body, csvData, csvSourceId, csvWarnings, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
   ]);
 
   return (
-    <div>
+    <div className="app-shell">
       <QutHeader />
       {currentPage === "upload" && (
         <UploadPage
@@ -69,6 +71,8 @@ function App() {
             setEmailEdits({});
           }}
           csvData={csvData}
+          csvWarnings={csvWarnings}
+          setCsvWarnings={setCsvWarnings}
           CsvHeaderFields={CsvHeaderFields}
           setCsvHeaderFields={setCsvHeaderFields}
           alertCcBcc={alertCcBcc}
@@ -80,6 +84,7 @@ function App() {
             setCsvData([]);
             setSelectedFileName("");
             setCsvSourceId(null);
+            setCsvWarnings([]);
             setEmailEdits({});
             setAlertCcBcc("");
             setCsvHeaderFields({ hasCc: false, hasBcc: false });

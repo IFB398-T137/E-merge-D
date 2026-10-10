@@ -26,8 +26,9 @@ const authProvider = new AuthProvider(msalConfig);
 const csvAttachmentStore = Promise.all([
   import("../src/utils/parseFile.js"),
   import("../src/utils/attachments.js"),
-]).then(([{ parseCSV }, { getRowAttachmentPaths, getAttachmentValidationError }]) =>
-  createCsvAttachmentStore({ parseCSV, getRowAttachmentPaths, getAttachmentValidationError }),
+  import("../src/utils/validateCsv.js"),
+]).then(([{ parseCSV }, { getRowAttachmentPaths, getAttachmentValidationError }, { getCsvValidationError }]) =>
+  createCsvAttachmentStore({ parseCSV, getCsvValidationError, getRowAttachmentPaths, getAttachmentValidationError }),
 );
 
 function assertMainWindowSender(event) {

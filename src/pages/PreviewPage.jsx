@@ -5,7 +5,7 @@ import RichTextEditor from "../components/RichTextEditor";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import { createOutlookDraft } from "../utils/outlookDrafts";
 import { validateRow } from "../utils/validateCsv";
-import { processRecipientArrays } from "../utils/processRecipients.js";
+import { getRecipientEmail, processRecipientArrays } from "../utils/processRecipients.js";
 
 import {
   formatFileSize,
@@ -187,7 +187,7 @@ function PreviewPage({
     const isEdited = Object.prototype.hasOwnProperty.call(emailEdits, index);
     const content = isEdited ? emailEdits[index] : mergeContent(body, row);
     const rowReplyTo = (row && (row.ReplyTo || row.replyto)) || replyTo || "";
-    const to = (row && (row.RecipientEmail || row.Email || row.recipientemail || row.email)) || "";
+    const to = getRecipientEmail(row);
     const { cc: rowCc, bcc: rowBcc } = processRecipientArrays({
       row,
       csvHasCc,
