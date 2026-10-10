@@ -1,5 +1,6 @@
 {
-  "name": "e-merge-d",
+  "name": "mailmagpie",
+  "productName": "MailMagpie",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -34,5 +35,12 @@
     "globals": "^17.5.0",
     "vite": "^8.0.10",
     "vitest": "^4.1.11"
+  },
+  "build": {
+    "appId": "com.electron.e-merge-d",
+    "icon": "public/app-icon.png",
+    "win": {
+      "icon": "public/app-icon.ico"
+    }
   }
 }

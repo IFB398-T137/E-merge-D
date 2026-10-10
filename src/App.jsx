@@ -27,7 +27,7 @@ function App() {
   const [selectedFileName, setSelectedFileName] = useState(savedWorkflow?.selectedFileName || "");
   const [csvSourceId, setCsvSourceId] = useState(savedWorkflow?.csvSourceId || null);
   const [body, setBody] = useState(savedWorkflow?.body || "");
-  const [subject, setSubject] = useState(savedWorkflow?.subject || "E-merge-D Test Email");
+  const [subject, setSubject] = useState(savedWorkflow?.subject || "MailMagpie Test Email");
   const [emailEdits, setEmailEdits] = useState(savedWorkflow?.emailEdits || {});
   const [CsvHeaderFields, setCsvHeaderFields] = useState(savedWorkflow?.CsvHeaderFields || { hasCc: false, hasBcc: false });
   const [alertCcBcc, setAlertCcBcc] = useState(savedWorkflow?.alertCcBcc || "");

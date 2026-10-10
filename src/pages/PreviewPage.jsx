@@ -142,7 +142,7 @@ function PreviewPage({
   csvData,
   csvSourceId,
   body,
-  subject = "E-merge-D Test Email",
+  subject = "MailMagpie Test Email",
   cc,
   bcc,
   replyTo,

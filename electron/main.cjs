@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const {
   app,
   BrowserWindow,
@@ -12,6 +13,12 @@ const { exportEmlFiles } = require("./emlExport.cjs");
 const { createCsvAttachmentStore } = require("./csvAttachments.cjs");
 
 const APP_PORT = 42813;
+
+// Preserve the existing desktop profile when the app name changes.
+const userDataPath = path.join(app.getPath("appData"), "e-merge-d");
+fs.mkdirSync(userDataPath, { recursive: true });
+app.setPath("userData", userDataPath);
+app.setPath("sessionData", userDataPath);
 
 let mainWindow;
 let server;
@@ -110,10 +117,22 @@ function registerFileHandlers() {
 }
 
 function createWindow() {
+  const iconPath = path.join(
+    __dirname,
+    "../dist",
+    process.platform === "win32" ? "app-icon.ico" : "app-icon.png",
+  );
+
+  if (process.platform === "darwin") {
+    app.dock.setIcon(iconPath);
+  }
+
   mainWindow = new BrowserWindow({
+    title: "MailMagpie",
     width: 1200,
     height: 800,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
