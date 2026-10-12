@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useImperativeHandle } from "react";
 import "./RichTextEditor.css";
 
-function RichTextEditor({ value, onChange, ariaLabel = "Email content", autoFocus = false }) {
+function RichTextEditor({ value, onChange, ariaLabel = "Email content", autoFocus = false, ref }) {
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -13,6 +13,31 @@ function RichTextEditor({ value, onChange, ariaLabel = "Email content", autoFocu
   useEffect(() => {
     if (autoFocus) editorRef.current?.focus();
   }, [autoFocus]);
+
+  useImperativeHandle(ref, () => ({
+    insertContent: (text) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      editor.focus();
+
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        editor.innerHTML += text;
+      }
+
+      onChange(editor.innerHTML);
+    }
+  }));
 
   function format(command, commandValue = null) {
     editorRef.current?.focus();
