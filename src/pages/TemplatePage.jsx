@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import RichTextEditor from "../components/RichTextEditor";
 import "./TemplatePage.css";
 
@@ -12,12 +12,20 @@ function TemplatePage({
   csvHasCc,
   csvHasBcc,
   initialReplyTo = "",
+  headers = [],
 }) {
   const [content, setContent] = useState(initialContent);
   const [subject, setSubject] = useState(initialSubject);
   const [manualCc, setManualCc] = useState(initialCc);
   const [manualBcc, setManualBcc] = useState(initialBcc);
   const [replyTo, setReplyTo] = useState(initialReplyTo);
+  const editorRef = useRef(null);
+
+  function insertHeader(header) {
+    if (editorRef.current) {
+      editorRef.current.insertContent(`{{${header}}}`);
+    }
+  }
 
   return (
     <main className="template-page workflow-page">
@@ -27,6 +35,25 @@ function TemplatePage({
         <p className="template-help">
           Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
         </p>
+
+        {headers.length > 0 && (
+          <div className="template-header-buttons">
+            <p className="template-header-label">Insert placeholders:</p>
+            <div className="template-header-buttons-list">
+              {headers.map((header) => (
+                <button
+                  key={header}
+                  type="button"
+                  className="template-header-btn"
+                  onClick={() => insertHeader(header)}
+                  title={`Insert {{${header}}}`}
+                >
+                  {`{{${header}}}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <label className="template-field">
           CC
@@ -75,6 +102,7 @@ function TemplatePage({
         </label>
 
         <RichTextEditor
+          ref={editorRef}
           value={content}
           onChange={setContent}
           ariaLabel="Email template content"

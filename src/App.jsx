@@ -114,6 +114,7 @@ function App() {
           initialCc={manualCc}
           initialBcc={manualBcc}
           initialReplyTo={replyTo}
+          headers={csvData.length > 0 ? Object.keys(csvData[0]) : []}
         />
       )}
 

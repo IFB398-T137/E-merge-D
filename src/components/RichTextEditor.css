@@ -38,6 +38,14 @@
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
 }
 
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: cover;
+}
+
 .rich-text-content :is(h1, h2, h3, h4, h5, h6) {
   color: inherit;
 }
