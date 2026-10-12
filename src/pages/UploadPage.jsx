@@ -43,9 +43,9 @@ function UploadPage({
     const { hasCc, hasBcc } = CsvHeaderFields(headers);
     // checks if CC and/or BCC headers exist in the CSV and alerts if either exist
     const messageCcBcc =
-      (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients."
-      : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients."
-      : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients."
+      (hasCc && !hasBcc) ? "CSV contains a 'CC' column. This will be used for CC recipients (this manual field will be disabled)."
+      : (!hasCc && hasBcc) ? "CSV contains a 'BCC' column. This will be used for BCC recipients (this manual field will be disabled)."
+      : (hasCc && hasBcc) ? "CSV contains both 'CC' and 'BCC' columns. These will be used for CC and BCC recipients (manual fields will be disabled)."
       : "";
 
     setCsvData(data);
@@ -172,8 +172,8 @@ function UploadPage({
           </section>
         )}
 
-        <div style={{ border: "1px solid #999", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
-          <p>Upload a CSV file to begin</p>
+        <div style={{ border: "1px solid #0f0f0f", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+          <p>Upload a CSV file to begin:</p>
           <ul>
             <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
             <li>Email or RecipientEmail is a MANDATORY header</li>
