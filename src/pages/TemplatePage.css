@@ -1,7 +1,7 @@
 .template-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1rem 1.5rem;
   text-align: left;
 }
 
@@ -41,7 +41,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  margin-top: 0.75rem;
 }
 
 .template-actions button {

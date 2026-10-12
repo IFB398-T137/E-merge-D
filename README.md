@@ -1,6 +1,8 @@
-# E-merge-D
+# MailMagpie
 
-E-merge-D is an Electron desktop email merge application for generating personalised Outlook drafts from CSV data. Users upload recipient data, create or paste an HTML/plain-text template, preview merged results, and save personalised messages directly to their Outlook Drafts folder through Microsoft Graph.
+MailMagpie is an Electron desktop email merge application for generating personalised Outlook drafts from CSV data. Users upload recipient data, create or paste an HTML/plain-text template, preview merged results, and save personalised messages directly to their Outlook Drafts folder through Microsoft Graph.
+
+Desktop builds and installers use the name **MailMagpie**. The existing app identifier and desktop data location are retained so the rebrand keeps using the same local data.
 
 ## Tech stack
 
@@ -39,6 +41,8 @@ npm run desktop
 
 This builds the Vite renderer and starts Electron.
 
+Hold **Ctrl** and scroll up or down to zoom the application in or out (50%–300%). Press **Ctrl+0** to reset to 100%.
+
 ## Run renderer only
 
 ```bash
@@ -48,6 +52,8 @@ npm run dev
 Microsoft sign-in is intentionally unavailable in a normal browser because authentication now runs in the Electron main process.
 
 ## Attachments
+
+CSV uploads report invalid files in red, including missing email headers, empty files, duplicate or blank headers, and malformed rows. Amber hazard warnings flag duplicate recipient email addresses and attachment problems, with expandable details identifying the affected recipient rows. Warnings allow you to continue to the template and preview; repeated addresses remain separate drafts. Attachment problems must be fixed before creating drafts or exporting emails. The desktop app checks paths when the CSV is selected and checks the files again before creating drafts or exporting.
 
 On the preview page, choose **Add attachments** to attach one or more files to every generated draft. Files must be non-empty and smaller than 3 MB. Potentially unsafe file types blocked by Outlook, such as executable and script files, are rejected before draft creation.
 
@@ -70,6 +76,8 @@ The desktop CSV picker retains the actual CSV path and original rows in Electron
 
 The application always displays a final confirmation before creating a single draft or all drafts. Drafts are saved to Outlook but are not sent.
 
+While creating all drafts, choose **Interrupt draft creation** below the progress message, then confirm with **Interrupt creation**. Draft creation continues until you confirm. Once confirmed, no further draft requests start; a draft already being saved can finish. The final status shows how many drafts were created and how many remain. Existing drafts stay in Outlook, and no email is sent or deleted. Choose **Keep creating** or press Escape to dismiss the interruption popup and continue. Starting again begins with the first recipient and may create duplicates.
+
 ## Test
 
 ```bash
@@ -80,8 +88,22 @@ npm test
 
 Run:
 
+```bash
 npm install
-npm run build
-npx electron-builder --win portable --x64 -c.directories.output=release.
+npm run build:win
+```
 
-Once the .exe is built in release/ the portable installer is ready
+The portable executable is created in `release./` as `MailMagpie <version>.exe`.
+This command rebuilds the app and embeds `public/app-icon.ico` in the Windows
+executables, including the portable `.exe` shown in File Explorer.
+
+
+## App icon
+
+The app uses the supplied magpie head artwork with a transparent background.
+`public/app-icon.svg` embeds the original PNG on a transparent canvas;
+`public/app-icon.png` and the multi-size `public/app-icon.ico` are its desktop exports.
+See `public/app-icon-source.md` for the artwork source.
+The icon is used by the Electron window, macOS Dock, packaged apps and browser favicon.
+Restart `npm run desktop` to see the updated window icon. Rebuild packaged apps
+with Electron Builder to update their executable or launcher icon.

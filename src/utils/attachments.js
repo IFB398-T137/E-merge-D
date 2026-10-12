@@ -147,7 +147,7 @@ export async function prepareEmailAttachments({
 
   if (rowsWithAttachments.length > 0) {
     if (!fileApi?.prepareCsvAttachments) {
-      throw new Error("CSV attachments require the E-merge-D desktop app. Open the app and select the CSV again.");
+      throw new Error("CSV attachments require the MailMagpie desktop app. Open the app and select the CSV again.");
     }
     if (!csvSourceId) {
       throw new Error("Select the CSV again on the Upload page so its attachment paths can be resolved from the CSV folder.");

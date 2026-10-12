@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import csvAttachments from "./csvAttachments.cjs";
 import { parseCSV } from "../src/utils/parseFile.js";
+import { getCsvValidationError } from "../src/utils/validateCsv.js";
 import {
   getRowAttachmentPaths,
   getAttachmentValidationError,
@@ -17,6 +18,7 @@ const senderId = 12;
 function createStore(options = {}) {
   return createCsvAttachmentStore({
     parseCSV,
+    getCsvValidationError,
     getRowAttachmentPaths,
     getAttachmentValidationError,
     ...options,
@@ -39,6 +41,7 @@ describe("CSV attachment paths", () => {
       readFile: vi.fn().mockResolvedValueOnce("Email,Attachments\nalice@example.com,attachments/alice-report.pdf\n")
         .mockResolvedValueOnce(Buffer.from("Alice report")),
       stat: vi.fn().mockResolvedValue({ isFile: () => true, size: 12 }),
+      access: vi.fn().mockResolvedValue(undefined),
     };
     const store = createStore({ fileSystem, pathModule: path.win32 });
     const selected = await store.selectCsv(senderId, csvPath);
@@ -47,6 +50,8 @@ describe("CSV attachment paths", () => {
     });
 
     expect(selected.name).toBe("students.csv");
+    expect(selected.attachmentIssues).toEqual([]);
+    expect(selected.attachmentsChecked).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.attachmentsByRow[0][0].name).toBe("alice-report.pdf");
     expect(fileSystem.stat).toHaveBeenCalledWith(attachmentPath);
@@ -129,6 +134,41 @@ describe("CSV attachment store", () => {
     })).toEqual({ attachmentsByRow: { 0: [] }, errors: [] });
   });
 
+  it("rejects invalid CSVs before checking attachment paths", async () => {
+    await expect(selectCsv("FirstName,Attachments\nAlice,missing.pdf"))
+      .rejects.toThrow("'Email' or 'RecipientEmail'");
+    await expect(selectCsv("Email,Attachments\n")).rejects.toThrow("no recipient rows");
+    await expect(selectCsv('Email,Attachments\na@example.com,"missing.pdf')).rejects.toThrow("unclosed quoted value");
+  });
+
+  it("warns about missing attachments during upload but allows the CSV and later repairs", async () => {
+    const selected = await selectCsv("Email,Attachments\na@example.com,attachments/missing.pdf\n");
+    expect(selected.data).toHaveLength(1);
+    expect(selected.attachmentIssues).toEqual([{
+      rowIndex: 0, path: "attachments/missing.pdf", kind: "unresolved", message: "File does not exist.",
+    }]);
+    expect(JSON.stringify(selected.attachmentIssues)).not.toContain(directory);
+
+    await fs.writeFile(path.join(directory, "attachments", "missing.pdf"), "repaired");
+    const result = await store.prepareCsvAttachments(senderId, { sourceId: selected.sourceId, rowIndexes: [0] });
+    expect(result.errors).toEqual([]);
+    expect(result.attachmentsByRow[0][0].name).toBe("missing.pdf");
+  });
+
+  it("checks shared paths once during upload without reading attachment contents", async () => {
+    const fileSystem = {
+      readFile: vi.fn().mockResolvedValue("Email,Attachments\na@example.com,report.pdf\nb@example.com,report.pdf\n"),
+      stat: vi.fn().mockResolvedValue({ isFile: () => true, size: 10 }),
+      access: vi.fn().mockResolvedValue(undefined),
+    };
+    store = createStore({ fileSystem });
+    const selected = await store.selectCsv(senderId, csvPath);
+    expect(selected.attachmentIssues).toEqual([]);
+    expect(fileSystem.stat).toHaveBeenCalledTimes(1);
+    expect(fileSystem.access).toHaveBeenCalledTimes(1);
+    expect(fileSystem.readFile.mock.calls).toEqual([[csvPath, "utf8"]]);
+  });
+
   it("reports every invalid file with its row, recipient and CSV path, without returning a partial batch", async () => {
     await fs.writeFile(path.join(directory, "attachments", "empty.pdf"), "");
     await fs.writeFile(path.join(directory, "attachments", "installer.EXE"), "unsafe");
@@ -144,6 +184,9 @@ describe("CSV attachment store", () => {
       sourceId: selected.sourceId, rowIndexes: [0, 1],
     });
 
+    expect(selected.attachmentIssues.map((issue) => issue.kind))
+      .toEqual(["unresolved", "invalid", "invalid", "invalid", "unresolved"]);
+    expect(selected.attachmentIssues.map((issue) => issue.rowIndex)).toEqual([0, 0, 1, 1, 1]);
     expect(result.attachmentsByRow).toEqual({});
     expect(result.errors).toHaveLength(5);
     expect(result.errors[0]).toContain('Recipient row 1 (alice@example.com), attachment "attachments/missing.pdf"');
@@ -198,8 +241,11 @@ describe("CSV attachment store", () => {
     const fakeFileSystem = {
       readFile: vi.fn().mockResolvedValueOnce("Email,Attachments\na@example.com,large.pdf;changed.pdf\n")
         .mockResolvedValue(Buffer.alloc(MAX_ATTACHMENT_SIZE_BYTES)),
-      stat: vi.fn().mockResolvedValueOnce({ isFile: () => true, size: MAX_ATTACHMENT_SIZE_BYTES })
-        .mockResolvedValueOnce({ isFile: () => true, size: 10 }),
+      stat: vi.fn().mockImplementation(async (filePath) => ({
+        isFile: () => true,
+        size: filePath.endsWith("large.pdf") ? MAX_ATTACHMENT_SIZE_BYTES : 10,
+      })),
+      access: vi.fn().mockResolvedValue(undefined),
     };
     store = createStore({ fileSystem: fakeFileSystem });
     const selected = await store.selectCsv(senderId, csvPath);
@@ -220,12 +266,15 @@ describe("CSV attachment store", () => {
       readFile: vi.fn().mockResolvedValueOnce("Email,Attachments\na@example.com,private.pdf\n")
         .mockRejectedValue(Object.assign(new Error(`EACCES: ${directory}`), { code: "EACCES" })),
       stat: vi.fn().mockResolvedValue({ isFile: () => true, size: 10 }),
+      access: vi.fn().mockRejectedValue(Object.assign(new Error(`EACCES: ${directory}`), { code: "EACCES" })),
     };
     store = createStore({ fileSystem: fakeFileSystem });
     const selected = await store.selectCsv(senderId, csvPath);
     const result = await store.prepareCsvAttachments(senderId, {
       sourceId: selected.sourceId, rowIndexes: [0],
     });
+    expect(selected.attachmentIssues[0].message).toContain("Check its permissions");
+    expect(JSON.stringify(selected.attachmentIssues)).not.toContain(directory);
     expect(result.errors[0]).toContain("Check its permissions");
     expect(result.errors[0]).not.toContain(directory);
   });
@@ -238,6 +287,7 @@ describe("CSV attachment store", () => {
           return Buffer.from("report");
         }),
       stat: vi.fn().mockResolvedValue({ isFile: () => true, size: 6 }),
+      access: vi.fn().mockResolvedValue(undefined),
     };
     store = createStore({ fileSystem: fakeFileSystem });
     const selected = await store.selectCsv(senderId, csvPath);

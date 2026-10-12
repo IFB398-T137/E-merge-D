@@ -6,7 +6,7 @@ function TemplatePage({
   onBack,
   onNext,
   initialContent = "",
-  initialSubject = "E-merge-D Test Email",
+  initialSubject = "MailMagpie Test Email",
   initialCc = "",
   initialBcc = "",
   csvHasCc,
@@ -28,86 +28,88 @@ function TemplatePage({
   }
 
   return (
-    <main className="template-page">
-      <h1>Create email template</h1>
+    <main className="template-page workflow-page">
+      <div className="workflow-content" role="region" aria-label="Email template details" tabIndex={0}>
+        <h1>Create email template</h1>
 
-      <p className="template-help">
-        Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
-      </p>
+        <p className="template-help">
+          Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
+        </p>
 
-      {headers.length > 0 && (
-        <div className="template-header-buttons">
-          <p className="template-header-label">Insert placeholders:</p>
-          <div className="template-header-buttons-list">
-            {headers.map((header) => (
-              <button
-                key={header}
-                type="button"
-                className="template-header-btn"
-                onClick={() => insertHeader(header)}
-                title={`Insert {{${header}}}`}
+        {headers.length > 0 && (
+          <div className="template-header-buttons">
+            <p className="template-header-label">Insert placeholders:</p>
+            <div className="template-header-buttons-list">
+              {headers.map((header) => (
+                <button
+                  key={header}
+                  type="button"
+                  className="template-header-btn"
+                  onClick={() => insertHeader(header)}
+                  title={`Insert {{${header}}}`}
                 >
                   {`{{${header}}}`}
                 </button>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <label className="template-field">
-        CC
-        <input
-          type="text"
-          value={csvHasCc ? "Uploaded CSV file contains a 'CC' column. This will be used for CC recipients." : manualCc}
-          onChange={event => !csvHasCc && setManualCc(event.target.value)}
-          disabled={csvHasCc}
-          style={{color: csvHasCc ? "rgba(0, 0, 0, 0.55)" : undefined,
-                  cursor: csvHasCc ? "not-allowed" : undefined}}
-          placeholder="CC"
+        <label className="template-field">
+          CC
+          <input
+            type="text"
+            value={csvHasCc ? "Uploaded CSV file contains a 'CC' column. This will be used for CC recipients." : manualCc}
+            onChange={event => !csvHasCc && setManualCc(event.target.value)}
+            disabled={csvHasCc}
+            style={{color: csvHasCc ? "rgba(0, 0, 0, 0.55)" : undefined,
+                    cursor: csvHasCc ? "not-allowed" : undefined}}
+            placeholder="CC"
+          />
+        </label>
+
+        <label className="template-field">
+          BCC
+          <input
+            type="text"
+            value={csvHasBcc ? "Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients." : manualBcc}
+            onChange={event => !csvHasBcc &&  setManualBcc(event.target.value)}
+            disabled={csvHasBcc}
+            style={{color: csvHasBcc ? "rgba(0, 0, 0, 0.55)" : undefined,
+                    cursor: csvHasBcc ? "not-allowed" : undefined}}
+            placeholder="BCC"
+          />
+        </label>
+
+        <label className="template-field">
+          Reply To
+          <input
+            type="text"
+            value={replyTo}
+            onChange={(event) => setReplyTo(event.target.value)}
+            placeholder="Reply To"
+          />
+        </label>
+
+        <label className="template-field">
+          Subject
+          <input
+            type="text"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            placeholder="Subject"
+          />
+        </label>
+
+        <RichTextEditor
+          ref={editorRef}
+          value={content}
+          onChange={setContent}
+          ariaLabel="Email template content"
         />
-      </label>
+      </div>
 
-      <label className="template-field">
-        BCC
-        <input
-          type="text"
-          value={csvHasBcc ? "Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients." : manualBcc}
-          onChange={event => !csvHasBcc &&  setManualBcc(event.target.value)}
-          disabled={csvHasBcc}
-          style={{color: csvHasBcc ? "rgba(0, 0, 0, 0.55)" : undefined,
-                  cursor: csvHasBcc ? "not-allowed" : undefined}}
-          placeholder="BCC"
-        />
-      </label>
-      
-      <label className="template-field">
-        Reply To
-        <input
-          type="text"
-          value={replyTo}
-          onChange={(event) => setReplyTo(event.target.value)}
-          placeholder="Reply To"
-        />
-      </label>
-
-      <label className="template-field">
-        Subject
-        <input
-          type="text"
-          value={subject}
-          onChange={(event) => setSubject(event.target.value)}
-          placeholder="Subject"
-        />
-      </label>
-
-      <RichTextEditor
-        ref={editorRef}
-        value={content}
-        onChange={setContent}
-        ariaLabel="Email template content"
-      />
-
-      <div className="template-actions">
+      <footer className="template-actions workflow-footer">
         <button type="button" onClick={onBack}>Back</button>
         <button
           type="button"
@@ -117,7 +119,7 @@ function TemplatePage({
         >
           Preview emails
         </button>
-      </div>
+      </footer>
     </main>
   );
 }

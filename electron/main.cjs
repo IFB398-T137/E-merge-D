@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const {
   app,
   BrowserWindow,
@@ -13,14 +14,21 @@ const { createCsvAttachmentStore } = require("./csvAttachments.cjs");
 
 const APP_PORT = 42813;
 
+// Preserve the existing desktop profile when the app name changes.
+const userDataPath = path.join(app.getPath("appData"), "e-merge-d");
+fs.mkdirSync(userDataPath, { recursive: true });
+app.setPath("userData", userDataPath);
+app.setPath("sessionData", userDataPath);
+
 let mainWindow;
 let server;
 const authProvider = new AuthProvider(msalConfig);
 const csvAttachmentStore = Promise.all([
   import("../src/utils/parseFile.js"),
   import("../src/utils/attachments.js"),
-]).then(([{ parseCSV }, { getRowAttachmentPaths, getAttachmentValidationError }]) =>
-  createCsvAttachmentStore({ parseCSV, getRowAttachmentPaths, getAttachmentValidationError }),
+  import("../src/utils/validateCsv.js"),
+]).then(([{ parseCSV }, { getRowAttachmentPaths, getAttachmentValidationError }, { getCsvValidationError }]) =>
+  createCsvAttachmentStore({ parseCSV, getCsvValidationError, getRowAttachmentPaths, getAttachmentValidationError }),
 );
 
 function assertMainWindowSender(event) {
@@ -110,15 +118,35 @@ function registerFileHandlers() {
 }
 
 function createWindow() {
+  const iconPath = path.join(
+    __dirname,
+    "../dist",
+    process.platform === "win32" ? "app-icon.ico" : "app-icon.png",
+  );
+
+  if (process.platform === "darwin") {
+    app.dock.setIcon(iconPath);
+  }
+
   mainWindow = new BrowserWindow({
+    title: "MailMagpie",
     width: 1200,
     height: 800,
     show: false,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  const { webContents } = mainWindow;
+  // Electron reports Ctrl+wheel requests but leaves applying page zoom to the app.
+  webContents.on("zoom-changed", (_event, direction) => {
+    const nextLevel = webContents.getZoomLevel() + (direction === "in" ? 0.5 : -0.5);
+    const zoomFactor = Math.max(0.5, Math.min(3, 1.2 ** nextLevel));
+    webContents.setZoomFactor(zoomFactor);
   });
 
   mainWindow.once("ready-to-show", () => {

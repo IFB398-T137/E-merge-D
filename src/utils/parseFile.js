@@ -29,6 +29,10 @@ export function parseCSV(text) {
         }
     }
 
+    if (inQuotes) {
+        throw new Error('The CSV contains an unclosed quoted value. Close the quotation mark and upload the file again.')
+    }
+
     if (currentValue || currentRow.length > 0) {
         currentRow.push(currentValue.trim())
         rows.push(currentRow)
@@ -37,7 +41,10 @@ export function parseCSV(text) {
     const nonEmptyRows = rows.filter(row => row.some(value => value !== ''))
     const headers = (nonEmptyRows[0] || []).map(header => header.trim())
 
-    const data = nonEmptyRows.slice(1).map(values => {
+    const data = nonEmptyRows.slice(1).map((values, rowIndex) => {
+        if (values.length > headers.length) {
+            throw new Error(`Recipient row ${rowIndex + 1} has ${values.length} values but the header has ${headers.length} columns. Put values containing commas inside double quotes.`)
+        }
         const row = {}
         headers.forEach((header, index) => {
             row[header] = values[index] || '' // to handle missing values

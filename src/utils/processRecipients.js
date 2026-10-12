@@ -1,5 +1,14 @@
 // processRecipient func parses all email header fields of Recipients/email addresses into an array of valid objects (that can be passed into Graph API)
 
+export function getRecipientEmail(row) {
+    const entries = Object.entries(row || {});
+    for (const header of ["recipientemail", "email"]) {
+        const entry = entries.find(([key]) => key.trim().toLowerCase() === header);
+        if (entry?.[1]) return String(entry[1]).trim();
+    }
+    return "";
+}
+
 // checks the source of email addresses (either from csv file or manual entry) and then stores into array
 export function processRecipientArrays({ 
     row, 
