@@ -23,6 +23,7 @@ function loadSavedWorkflow() {
 function App() {
   const savedWorkflow = loadSavedWorkflow();
   const [currentPage, setCurrentPage] = useState(savedWorkflow?.currentPage || "upload");
+  const [hasSkippedSignIn, setHasSkippedSignIn] = useState(savedWorkflow?.hasSkippedSignIn === true);
   const [csvData, setCsvData] = useState(savedWorkflow?.csvData || []);
   const [selectedFileName, setSelectedFileName] = useState(savedWorkflow?.selectedFileName || "");
   const [csvSourceId, setCsvSourceId] = useState(savedWorkflow?.csvSourceId || null);
@@ -42,6 +43,7 @@ function App() {
       savedWorkflowKey,
       JSON.stringify({
         currentPage,
+        hasSkippedSignIn,
         csvData,
         selectedFileName,
         csvSourceId,
@@ -56,7 +58,7 @@ function App() {
         replyTo,
       }),
     );
-  }, [body, csvData, csvSourceId, csvWarnings, currentPage, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
+  }, [body, csvData, csvSourceId, csvWarnings, currentPage, hasSkippedSignIn, emailEdits, selectedFileName, subject, CsvHeaderFields, alertCcBcc, manualCc, manualBcc, replyTo
   ]);
 
   return (
@@ -64,6 +66,8 @@ function App() {
       <QutHeader />
       {currentPage === "upload" && (
         <UploadPage
+          hasSkippedSignIn={hasSkippedSignIn}
+          onSkipSignIn={() => setHasSkippedSignIn(true)}
           onNext={() => 
             setCurrentPage("template")}
           setCsvData={(data) => {
