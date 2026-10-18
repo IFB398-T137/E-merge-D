@@ -31,6 +31,10 @@ In the Microsoft Entra admin center, open **App registrations** and select the r
 
 The receiving maintainer needs access to this registration to manage configuration and consent during handover.
 
+## Working without Microsoft integration
+
+If Entra setup or Microsoft sign-in is unavailable, open the desktop app, choose **Skip sign-in**, and confirm **Continue offline**. CSV upload, templates, preview, local attachments and `.eml` export remain available without Microsoft authentication or network access. Outlook draft creation is disabled while signed out. Return to Upload files to sign in later when the integration is available.
+
 ## Port distinction
 
 `http://127.0.0.1:42813` serves the app's local UI. It is not the Microsoft authentication redirect URI. MSAL Node manages its own loopback callback; the registered desktop redirect is `http://localhost`.
@@ -49,7 +53,7 @@ npm run desktop
 The lockfile includes MSAL Node and matches `package.json`; no dependency migration or lockfile regeneration is required for a normal checkout.
 
 1. Select **Sign in with Microsoft** and complete sign-in in the system browser.
-2. After the success page appears, return to MailMagpie and confirm that CSV selection is enabled.
+2. After the success page appears, return to MailMagpie and confirm that it reports successful Microsoft sign-in.
 3. Upload a small fictional CSV and create a test draft. Confirm it appears in the signed-in account's Outlook Drafts folder with the expected recipients and content.
 4. Repeat the sign-in and draft check using the final packaged Windows executable before handover.
 

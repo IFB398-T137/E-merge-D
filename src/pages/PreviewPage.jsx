@@ -187,7 +187,7 @@ function PreviewPage({
   const bulkDraftRunRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const isBusy = isCreatingDrafts || isExporting || Boolean(pendingDraftAction);
-  const { signIn, getAccessToken, isAuthenticated } = useDesktopAuth();
+  const { getAccessToken, isAuthenticated } = useDesktopAuth();
 
   useEffect(() => () => bulkDraftRunRef.current?.abort(), []);
 
@@ -299,15 +299,15 @@ function PreviewPage({
     );
   }
 
-  async function ensureSignedIn() {
+  function ensureSignedIn() {
     if (isAuthenticated) return true;
 
-    setStatus("Sign in with Microsoft to create Outlook drafts.");
-    await signIn();
-    return true;
+    setStatus("Outlook draft creation requires Microsoft sign-in. Return to Upload files to sign in, or export .eml files.");
+    return false;
   }
 
   async function sendSingleDraft(index) {
+    if (!ensureSignedIn()) return;
     let accessToken = "";
 
     try {
@@ -325,7 +325,6 @@ function PreviewPage({
         globalFiles: attachments,
         csvSourceId,
       });
-      await ensureSignedIn();
       accessToken = await getAccessToken();
       setStatus("Creating draft...");
       await createDraftWithFreshToken(preparedEmail, accessToken, subject);
@@ -380,7 +379,7 @@ function PreviewPage({
   }
 
   async function sendAllDrafts() {
-    if (bulkDraftRunRef.current) return;
+    if (bulkDraftRunRef.current || !ensureSignedIn()) return;
     const controller = new AbortController();
     bulkDraftRunRef.current = controller;
     const { signal } = controller;
@@ -406,8 +405,6 @@ function PreviewPage({
         globalFiles: attachments,
         csvSourceId,
       });
-      signal.throwIfAborted();
-      await ensureSignedIn();
       signal.throwIfAborted();
       accessToken = await getAccessToken();
 
@@ -471,6 +468,7 @@ function PreviewPage({
   }
 
   function requestAllDrafts() {
+    if (!ensureSignedIn()) return;
     const missingRecipientCount = merged.filter((email) => !email.to).length;
 
     if (missingRecipientCount > 0) {
@@ -697,6 +695,11 @@ function PreviewPage({
       )}
 
       <footer className="preview-footer">
+      {!isAuthenticated && (
+        <p id="outlook-sign-in-help" className="outlook-sign-in-help">
+          Outlook draft creation requires Microsoft sign-in. You can export .eml files, or return to Upload files to sign in.
+        </p>
+      )}
       {status && <p className="draft-status" role="status">{status}</p>}
 
       {bulkDraftProgress && (
@@ -724,7 +727,12 @@ function PreviewPage({
           Export all .eml files
         </button>
 
-        <button onClick={requestAllDrafts} disabled={isBusy || !merged.length}>
+        <button
+          className="create-outlook-drafts"
+          onClick={requestAllDrafts}
+          disabled={!isAuthenticated || isBusy || !merged.length}
+          aria-describedby={!isAuthenticated ? "outlook-sign-in-help" : undefined}
+        >
           Create all Outlook drafts
         </button>
       </div>

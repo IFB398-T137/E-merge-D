@@ -14,11 +14,19 @@ Distribute both Word guides with the final executable. Error messages and recove
 
 ## Using the app
 
-1. Open MailMagpie and select **Sign in with Microsoft**. Complete sign-in in your default browser and return to the app. Drafts are created in the Outlook account used for sign-in.
+1. Open MailMagpie and select **Sign in with Microsoft**, or choose **Skip sign-in** and confirm **Continue offline**. Microsoft sign-in enables Outlook drafts in that account. Offline mode supports CSV upload, editing, preview and local `.eml` export.
 2. On **Upload files**, choose a CSV. The app shows the first three data rows, the total recipient-row count and any validation messages. Select **Next** once the file is accepted.
 3. On **Create email template**, enter the subject and compose or paste the message. Click in the message body, then choose a button under **Insert placeholders**, such as `{{FirstName}}`. The buttons come from the uploaded CSV headers. Formatting controls include bold, italic, underline, headings, lists and links.
 4. Select **Preview emails**. Review the recipients and merged content, use **Edit this email** for individual body changes, and add any shared attachments.
-5. Select **Create all Outlook drafts** and confirm, or select **Export all .eml files** and choose an output folder. Review the resulting messages in Outlook or your email client before sending them yourself.
+5. When signed in, select **Create all Outlook drafts** and confirm. Alternatively, select **Export all .eml files** and choose an output folder. Outlook draft creation is greyed out while signed out. Review the resulting messages in Outlook or your email client before sending them yourself.
+
+### Offline .eml fallback
+
+If Microsoft integration cannot be configured or internet access is unavailable, select **Skip sign-in** on Upload files. The popup explains that Outlook draft creation requires Microsoft sign-in. Choose **Continue offline** to proceed; **Cancel** or Escape closes the popup without enabling offline access.
+
+Prepare the CSV and template, preview the messages and choose **Export all .eml files**. CSV attachments and shared attachments work offline using locally available files. Export does not contact Microsoft or create Outlook drafts. Open the resulting files in a compatible email client when ready. Remotely hosted content, such as images referenced by URLs in pasted templates, still needs internet access to load.
+
+The offline choice is retained during navigation and a reload within the session. To enable Outlook drafts later, use **Back** to return to Upload files and select **Sign in with Microsoft**. Finish sign-in, then return to Preview. Signing in does not clear the loaded CSV or individual edits.
 
 **Find recipients** searches names and To, CC and BCC addresses. Press **Ctrl+F** (or **Cmd+F** on macOS) on Preview to focus the search. Search and recipient selection navigate the preview; both output actions still process **every loaded CSV row**. To create one draft, load a CSV with one recipient row.
 
@@ -85,7 +93,7 @@ Each file must be non-empty and **smaller than 3 MB** (3 × 1024 × 1024 bytes).
 
 ## Development setup
 
-Use **Node.js 22.13 or newer within the 22.x series** and npm. Local validation for this handover used Node.js **22.22.2** and npm **10.9.7**. Internet access is required to install dependencies and to sign in or create Outlook drafts. The account must have an Outlook mailbox and permission to use the configured Microsoft application.
+Use **Node.js 22.13 or newer within the 22.x series** and npm. Local validation for this handover used Node.js **22.22.2** and npm **10.9.7**. Internet access is required to install dependencies and to sign in or create Outlook drafts. Outlook draft creation requires an account with an Outlook mailbox and permission to use the configured Microsoft application. The packaged app's offline `.eml` workflow needs no Microsoft account or connection to Microsoft.
 
 From the repository root:
 
@@ -107,7 +115,7 @@ npm run desktop
 | `npm run lint` | Run ESLint. |
 | `npm run build:win` | Build the renderer and package the Windows x64 portable executable. |
 
-Browser-only modes are for UI development. Microsoft sign-in, the desktop CSV picker and `.eml` export use Electron's preload bridge and are unavailable in a normal browser. The normal upload workflow requires sign-in, so use `npm run desktop` for end-to-end testing.
+Browser-only modes are for UI development. **Skip sign-in** lets you exercise CSV upload, template creation and preview in a browser. Microsoft sign-in, the desktop CSV picker, CSV attachment access and `.eml` export use Electron's preload bridge and require the desktop app. Use `npm run desktop` for end-to-end testing, including offline export.
 
 ## Microsoft authentication
 
@@ -159,7 +167,7 @@ Before handover:
 
 1. Confirm the intended release version in `package.json` and `package-lock.json`, and align the guide versions. If changing the version, use `npm version <version> --no-git-tag-version` to update both package files.
 2. Include both Word guides in the release commit and handover bundle, alongside the README and Microsoft sign-in setup. Exclude temporary Office lock files (`.~lock.*`).
-3. Test the newly built executable on the target Windows machine with a test Outlook account and a small fictional CSV. Exercise sign-in, placeholder buttons, multiple CC addresses, validation and warnings, individual edits, shared and CSV attachments, draft creation, interruption and `.eml` export. Check the resulting recipients, formatting and attachments in Outlook.
+3. Test the newly built executable on the target Windows machine with a test Outlook account and a small fictional CSV. Exercise sign-in, placeholder buttons, multiple CC addresses, validation and warnings, individual edits, shared and CSV attachments, draft creation, interruption and `.eml` export. Also start a fresh session without internet access: confirm **Skip sign-in → Continue offline**, check that Outlook draft creation stays disabled, and export messages with local attachments. Check the resulting recipients, formatting and attachments in Outlook.
 4. Record the source commit, package version, build environment and verification results with the handover. Confirm the receiving maintainer has access to the repository and the Entra app registration.
 
 The automated suite covers CSV parsing and validation, warnings, merging, attachments, Graph request behaviour and `.eml` generation. It does not verify interactive Microsoft sign-in or the packaged Windows workflow; those require the desktop checks above.

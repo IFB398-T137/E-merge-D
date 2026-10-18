@@ -5,7 +5,43 @@ import { getCsvWarnings } from "../utils/csvWarnings";
 import { useDesktopAuth } from "../auth/DesktopAuthContext.jsx";
 import "./UploadPage.css";
 
+function OfflineConfirmation({ onCancel, onConfirm }) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="offline-confirmation"
+      aria-labelledby="offline-title"
+      aria-describedby="offline-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+    >
+      <h2 id="offline-title">Continue without signing in?</h2>
+      <div id="offline-description">
+        <p>You can upload a CSV, create and preview emails, and export .eml files offline.</p>
+        <p><strong>Outlook draft creation is unavailable until you sign in with Microsoft.</strong></p>
+        <p>You can return to Upload files to sign in later.</p>
+      </div>
+      <div className="offline-confirmation-actions">
+        <button type="button" onClick={onCancel} autoFocus>Cancel</button>
+        <button type="button" onClick={onConfirm}>Continue offline</button>
+      </div>
+    </dialog>
+  );
+}
+
 function UploadPage({
+  hasSkippedSignIn,
+  onSkipSignIn,
   onNext,
   csvData,
   csvWarnings,
@@ -22,6 +58,9 @@ function UploadPage({
   const [previewRows, setPreviewRows] = useState(() => csvData.slice(0, 3));
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [showOfflineConfirmation, setShowOfflineConfirmation] = useState(false);
+  const [signInError, setSignInError] = useState("");
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const fileInputRef = useRef(null);
   const uploadMessageRef = useRef(null);
   const uploadWarningsRef = useRef(null);
@@ -29,7 +68,20 @@ function UploadPage({
   const hasDesktopPicker = Boolean(window.eMergeDFiles?.selectCsv);
   const showUploadMessage = Boolean(uploadError) || !selectedFileName;
 
-  const { signIn, isAuthenticated } = useDesktopAuth();
+  const { signIn, isAuthenticated, isLoading } = useDesktopAuth();
+  const canContinue = isAuthenticated || hasSkippedSignIn;
+
+  async function handleSignIn() {
+    setSignInError("");
+    setIsSigningIn(true);
+    try {
+      await signIn();
+    } catch (error) {
+      setSignInError(error.message || "Unable to sign in with Microsoft. You can try again or continue offline.");
+    } finally {
+      setIsSigningIn(false);
+    }
+  }
 
   useEffect(() => {
     if (uploadError) uploadMessageRef.current?.scrollIntoView({ block: "nearest" });
@@ -102,22 +154,35 @@ function UploadPage({
         <h1>Upload files</h1>
 
         {!isAuthenticated ? (
-          <button onClick={signIn} style={{ marginBottom: "20px" }}>
-            Sign in with Microsoft
-          </button>
+          <div className="upload-auth-actions">
+            <button type="button" onClick={handleSignIn} disabled={isLoading || isSigningIn}>
+              {isSigningIn ? "Signing in…" : "Sign in with Microsoft"}
+            </button>
+            {!hasSkippedSignIn && (
+              <button type="button" onClick={() => setShowOfflineConfirmation(true)} disabled={isLoading} aria-haspopup="dialog">
+                Skip sign-in
+              </button>
+            )}
+          </div>
         ) : (
           <p style={{ marginBottom: "20px" }}>Successfully signed in with Microsoft</p>
         )}
 
-        <h3>
-          <span style={{ color: "red" }}>*</span> Draft emails will be created in the Outlook account used for sign-in <span style={{ color: "red" }}>*</span>
-        </h3>
+        {signInError && !isAuthenticated && <p className="upload-message" role="alert">{signInError}</p>}
+
+        {!isAuthenticated && hasSkippedSignIn ? (
+          <p className="upload-offline-notice" role="status">
+            Working offline. You can export .eml files. Sign in with Microsoft to enable Outlook draft creation.
+          </p>
+        ) : (
+          <p className="upload-account-notice">Outlook drafts will be created in the Microsoft account used for sign-in.</p>
+        )}
 
         {hasDesktopPicker ? (
           <button
             type="button"
             onClick={() => loadCsv(() => window.eMergeDFiles.selectCsv())}
-            disabled={!isAuthenticated || isUploading}
+            disabled={!canContinue || isUploading}
             aria-describedby={showUploadMessage ? "csv-upload-message" : undefined}
           >
             {isUploading ? "Reading CSV…" : "Choose CSV file"}
@@ -127,7 +192,7 @@ function UploadPage({
           type="file"
           accept=".csv"
           onChange={handleFileUpload}
-          disabled={!isAuthenticated || isUploading}
+          disabled={!canContinue || isUploading}
           aria-invalid={Boolean(uploadError)}
           aria-describedby={showUploadMessage ? "csv-upload-message" : undefined}
         />}
@@ -226,8 +291,19 @@ function UploadPage({
         )}
       </div>
 
+      {showOfflineConfirmation && (
+        <OfflineConfirmation
+          onCancel={() => setShowOfflineConfirmation(false)}
+          onConfirm={() => {
+            onSkipSignIn();
+            setShowOfflineConfirmation(false);
+            setSignInError("");
+          }}
+        />
+      )}
+
       <footer className="upload-actions workflow-footer">
-        <button onClick={onNext} disabled={!isAuthenticated || isUploading || previewRows.length === 0}>
+        <button onClick={onNext} disabled={!canContinue || isUploading || previewRows.length === 0}>
           Next
         </button>
       </footer>

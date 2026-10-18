@@ -1,7 +1,7 @@
 .template-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem 1.5rem;
+  padding: 2rem 1.5rem;
   text-align: left;
 }
 
@@ -41,7 +41,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin-top: 1.25rem;
 }
 
 .template-actions button {
@@ -62,47 +62,4 @@
 .template-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.template-header-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.template-header-label {
-  font-weight: 600;
-  margin-right: 0.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
-}
-
-.template-header-buttons-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.template-header-btn {
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  background: #f9fafb;
-  color: #111827;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-family: monospace;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.template-header-btn:hover {
-  background: #e5e7eb;
-  border-color: #9ca3af;
-}
-
-.template-header-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #7c3aed;
 }

@@ -567,6 +567,20 @@
   cursor: not-allowed;
 }
 
+.preview-actions .create-outlook-drafts:disabled {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #6b7280;
+  opacity: 1;
+}
+
+.outlook-sign-in-help {
+  margin-bottom: 0.75rem;
+  color: var(--text-h);
+  text-align: left;
+  font-size: 0.8rem;
+}
+
 .preview-footer .draft-status {
   margin: 0 0 0.5rem;
   max-height: min(8rem, 20dvh);
