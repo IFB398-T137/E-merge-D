@@ -32,10 +32,6 @@ function TemplatePage({
       <div className="workflow-content" role="region" aria-label="Email template details" tabIndex={0}>
         <h1>Create email template</h1>
 
-        <p className="template-help">
-          Use {"{{ColumnHeader}}"} to insert values from your CSV, such as {"{{FirstName}}"} or {"{{Email}}"}.
-        </p>
-
         {headers.length > 0 && (
           <div className="template-header-buttons">
             <p className="template-header-label">Insert placeholders:</p>
