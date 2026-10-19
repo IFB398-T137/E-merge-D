@@ -574,7 +574,7 @@ function PreviewPage({
             </p>
             <div className="preview-email-tools">
             <label className={`attachment-picker${isBusy ? " is-disabled" : ""}`}>
-              Add attachments
+              Add global attachments
               <input type="file" multiple onChange={handleAttachmentSelection} aria-describedby="attachment-help" disabled={isBusy} />
             </label>
             <button type="button" onClick={() => setIsEditing(true)} disabled={isBusy || !merged.length}>

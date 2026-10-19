@@ -20,39 +20,22 @@ function TemplatePage({
   const [manualBcc, setManualBcc] = useState(initialBcc);
   const [replyTo, setReplyTo] = useState(initialReplyTo);
   const editorRef = useRef(null);
+  const isContentEmpty = !content.replace(/<[^>]*>/g, "").trim();
 
   function insertHeader(header) {
-    if (editorRef.current) {
-      editorRef.current.insertContent(`{{${header}}}`);
-    }
+      editorRef.current?.insertContent(`{{${header}}}`);
   }
 
   return (
     <main className="template-page workflow-page">
-      <div className="workflow-content" role="region" aria-label="Email template details" tabIndex={0}>
-        <h1>Create email template</h1>
-
-        {headers.length > 0 && (
-          <div className="template-header-buttons">
-            <p className="template-header-label">Insert placeholders:</p>
-            <div className="template-header-buttons-list">
-              {headers.map((header) => (
-                <button
-                  key={header}
-                  type="button"
-                  className="template-header-btn"
-                  onClick={() => insertHeader(header)}
-                  title={`Insert {{${header}}}`}
-                >
-                  {`{{${header}}}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      <div 
+        className="workflow-content" 
+        role="region" 
+        aria-label="Email template editor" 
+        tabIndex={0}>
+          <h1>Create email template</h1>
 
         <label className="template-field">
-          CC
           <input
             type="text"
             value={csvHasCc ? "Uploaded CSV file contains a 'CC' column. This will be used for CC recipients." : manualCc}
@@ -60,12 +43,11 @@ function TemplatePage({
             disabled={csvHasCc}
             style={{color: csvHasCc ? "rgba(0, 0, 0, 0.55)" : undefined,
                     cursor: csvHasCc ? "not-allowed" : undefined}}
-            placeholder="CC"
+            placeholder="CC email addresses (comma-separated)"
           />
         </label>
 
         <label className="template-field">
-          BCC
           <input
             type="text"
             value={csvHasBcc ? "Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients." : manualBcc}
@@ -73,29 +55,47 @@ function TemplatePage({
             disabled={csvHasBcc}
             style={{color: csvHasBcc ? "rgba(0, 0, 0, 0.55)" : undefined,
                     cursor: csvHasBcc ? "not-allowed" : undefined}}
-            placeholder="BCC"
+            placeholder="BCC email addresses (comma-separated)"
           />
         </label>
 
         <label className="template-field">
-          Reply To
           <input
             type="text"
             value={replyTo}
             onChange={(event) => setReplyTo(event.target.value)}
-            placeholder="Reply To"
+            placeholder="Reply-To address (optional)"
           />
         </label>
 
         <label className="template-field">
-          Subject
           <input
             type="text"
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            placeholder="Subject"
+            placeholder="Email subject"
           />
         </label>
+
+        {headers.length > 0 && (
+          <div className="template-header-buttons">
+            <p className="template-header-label">Insert placeholders into the email body:</p>
+            <div className="template-header-buttons-list">
+              {headers.map((header) => (
+                <button
+                  key={header}
+                  type="button"
+                  className="template-header-button"
+                  onClick={() => insertHeader(header)}
+                  title={`Insert {{${header}}}`}
+                  aria-label={`Insert ${header} placeholder`}
+                >
+                  {`{{${header}}}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <RichTextEditor
           ref={editorRef}
@@ -105,17 +105,22 @@ function TemplatePage({
         />
       </div>
 
-      <footer className="template-actions workflow-footer">
-        <button type="button" onClick={onBack}>Back</button>
+      <div className="template-actions">
+        <button 
+        type="button"
+        onClick={onBack}>
+          Back
+        </button>
+
         <button
           type="button"
-          className="template-next"
           onClick={() => onNext(content, subject, manualCc, manualBcc, replyTo)}
-          disabled={!content.replace(/<[^>]*>/g, "").trim()}
-        >
+          disabled={isContentEmpty}
+          aria-disabled={isContentEmpty}
+          >
           Preview emails
         </button>
-      </footer>
+      </div>
     </main>
   );
 }
