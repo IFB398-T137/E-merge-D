@@ -163,11 +163,4 @@ npm run build:win
 
 The build script creates a portable executable in **`release./`** — the directory name includes a trailing period — named **`MailMagpie 1.0.0.exe`** for the current version. The command rebuilds `dist/` and embeds `public/app-icon.ico`. This is a portable app, not an installer. Generated files are ignored by Git. macOS and Linux release targets are not configured by this script.
 
-Before handover:
-
-1. Confirm the intended release version in `package.json` and `package-lock.json`, and align the guide versions. If changing the version, use `npm version <version> --no-git-tag-version` to update both package files.
-2. Include both Word guides in the release commit and handover bundle, alongside the README and Microsoft sign-in setup. Exclude temporary Office lock files (`.~lock.*`).
-3. Test the newly built executable on the target Windows machine with a test Outlook account and a small fictional CSV. Exercise sign-in, placeholder buttons, multiple CC addresses, validation and warnings, individual edits, shared and CSV attachments, draft creation, interruption and `.eml` export. Also start a fresh session without internet access: confirm **Skip sign-in → Continue offline**, check that Outlook draft creation stays disabled, and export messages with local attachments. Check the resulting recipients, formatting and attachments in Outlook.
-4. Record the source commit, package version, build environment and verification results with the handover. Confirm the receiving maintainer has access to the repository and the Entra app registration.
-
 The automated suite covers CSV parsing and validation, warnings, merging, attachments, Graph request behaviour and `.eml` generation. It does not verify interactive Microsoft sign-in or the packaged Windows workflow; those require the desktop checks above.
