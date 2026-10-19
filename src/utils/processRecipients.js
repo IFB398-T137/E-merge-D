@@ -48,9 +48,9 @@ export function processRecipientArrays({
 export function parseEmailCell(value) {
     if (!value || typeof value !== 'string') return []
     return value.split(',').map(email => email.trim()).filter(email => email.length > 0 && validateEmail(email));
-} //add catch?
+} 
 
 export function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
-} //add catch for invalid email addresses
+}

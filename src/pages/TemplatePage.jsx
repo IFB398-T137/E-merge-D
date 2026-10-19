@@ -36,7 +36,6 @@ function TemplatePage({
           <h1>Create email template</h1>
 
         <label className="template-field">
-          CC
           <input
             type="text"
             value={csvHasCc ? "Uploaded CSV file contains a 'CC' column. This will be used for CC recipients." : manualCc}
@@ -49,7 +48,6 @@ function TemplatePage({
         </label>
 
         <label className="template-field">
-          BCC
           <input
             type="text"
             value={csvHasBcc ? "Uploaded CSV file contains a 'BCC' column. This will be used for BCC recipients." : manualBcc}
@@ -62,7 +60,6 @@ function TemplatePage({
         </label>
 
         <label className="template-field">
-          Reply To
           <input
             type="text"
             value={replyTo}
@@ -72,7 +69,6 @@ function TemplatePage({
         </label>
 
         <label className="template-field">
-          Subject
           <input
             type="text"
             value={subject}

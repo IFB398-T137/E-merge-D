@@ -237,14 +237,15 @@ function UploadPage({
           </section>
         )}
 
-        <div style={{ border: "1px solid #0f0f0f", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+        <div style={{ border: "1px solid #0f0f0f", marginTop: "20px", padding: "16px", textAlign: "left", borderRadius: "8px", backgroundColor: "#f9f9f9", color: "#333333"}}>
           <p>Upload a CSV file to begin:</p>
           <ul>
-            <li>Ensure your file includes column headers, e.g. FirstName, Email</li>
-            <li>Email or RecipientEmail is a MANDATORY header</li>
-            <li>Each row will be used to generate one email</li>
+            <li>Ensure your file includes column headers, e.g. FirstName, Email.</li>
+            <li>Email or RecipientEmail is a MANDATORY header.</li>
+            <li>Each row will be used to generate one email.</li>
             <li>Attachments can be added by including a file path relative to the CSV folder under a header named &apos;Attachments&apos;.</li>
             <li>XLSX file format is not supported!</li>
+            <li>A preview of the uploaded data will be available below.</li>
           </ul>
         </div>
 

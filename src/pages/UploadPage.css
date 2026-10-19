@@ -48,7 +48,7 @@
   padding: 1.5rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg);
+  background: #7c3aed;
   color: var(--text-h);
   text-align: left;
   box-shadow: var(--shadow);
@@ -74,6 +74,16 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 0.75rem;
+}
+
+.upload-actions button {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  border-color: #6d28d9;
+  background: #7c3aed;
+  color: #fff;
+  cursor: pointer;
 }
 
 .upload-message {
